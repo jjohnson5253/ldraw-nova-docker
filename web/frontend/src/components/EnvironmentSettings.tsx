@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
+import { useSearchParams } from "react-router-dom";
 import { api, type EnvironmentVariable } from "../api";
 import { useApp } from "../context";
 
@@ -26,6 +27,8 @@ function ReplacementWarning({ row }: { row: Row }) {
 }
 
 export default function EnvironmentSettings() {
+  const [params] = useSearchParams();
+  const setupRebrickable = params.get("environment") === "REBRICKABLE_API_KEY";
   const { refreshLlms } = useApp();
   const [rows, setRows] = useState<Row[]>([]);
   const [loaded, setLoaded] = useState(false);
@@ -38,10 +41,19 @@ export default function EnvironmentSettings() {
   useEffect(() => {
     let active = true;
     api.environment().then(result => {
-      if (active) { setRows(toRows(result.variables)); setLoaded(true); }
+      if (active) {
+        const next = toRows(result.variables);
+        const addRebrickable = setupRebrickable && !next.some(row => row.name === "REBRICKABLE_API_KEY");
+        if (addRebrickable) next.push({ key: "rebrickable-setup", name: "REBRICKABLE_API_KEY", value: "", has_value: false, fixed: false });
+        setRows(next); setDirty(addRebrickable); setLoaded(true);
+      }
     }).catch(e => { if (active) setError(e.message); });
     return () => { active = false; };
-  }, []);
+  }, [setupRebrickable]);
+
+  useEffect(() => {
+    if (loaded && setupRebrickable) document.getElementById("environment-heading")?.scrollIntoView({ block: "start" });
+  }, [loaded, setupRebrickable]);
 
   function change(key: string, patch: Partial<Row>) {
     setRows(current => current.map(row => row.key === key ? { ...row, ...patch } : row));

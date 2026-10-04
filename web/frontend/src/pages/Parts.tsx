@@ -37,7 +37,7 @@ export default function Parts() {
     {error && <div className="banner error" role="alert">{error}</div>}
     <section className="panel" aria-label="Import parts">
       <h2>Add a set</h2>
-      {!configured && <p className="muted">For set search, add <code>REBRICKABLE_API_KEY</code> in <Link to="/settings">Settings → Environment</Link>. CSV with LDraw IDs works without a key.</p>}
+      {!configured && <p className="muted">Set search needs a Rebrickable API key. <Link to="/settings?environment=REBRICKABLE_API_KEY#environment-heading">Set up Rebrickable</Link> to enter your key. CSV with LDraw IDs works without a key.</p>}
       <form className="head-actions" onSubmit={e => { e.preventDefault(); void search(query); }}>
         <input aria-label="Set name, number, or URL" placeholder="Set name, number, or LEGO / BrickLink / Rebrickable URL" value={query} onChange={e => setQuery(e.target.value)} />
         <button disabled={busy || !query.trim() || !configured}>Search sets</button>
