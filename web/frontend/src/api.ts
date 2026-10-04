@@ -111,7 +111,7 @@ async function request<T>(url: string, init?: RequestInit): Promise<T> {
 
 const json = (body: unknown) => JSON.stringify(body);
 
-export type SetCatalogStatus = { ready: boolean; configured: boolean; state: "empty" | "syncing" | "ready" | "error"; total_sets?: number; updated_at?: string; stage?: string; indexed?: number; error?: string };
+export type SetCatalogStatus = { ready: boolean; inventory_ready: boolean; configured: boolean; state: "empty" | "syncing" | "inventory_syncing" | "ready" | "error"; total_sets?: number; total_parts?: number; total_inventory_rows?: number; updated_at?: string; stage?: string; indexed?: number; error?: string };
 
 export const api = {
   setCatalog: (refresh = false) => request<SetCatalogStatus>("/api/collection/catalog", refresh ? { method: "POST" } : undefined),

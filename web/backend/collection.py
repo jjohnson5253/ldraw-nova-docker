@@ -137,12 +137,16 @@ def preview(body: dict) -> dict:
         number = set_number(body["set"])
         if not number:
             raise ValueError("Choose a set from the search results")
-        info = catalog(f"sets/{number}/")
-        rows = catalog_rows(f"sets/{number}/parts/", inc_part_details=1, inc_minifig_parts=1)
-        colors = {c["id"]: c for c in catalog_rows("colors/")}
-        parts = [_mapped(row["part"], colors.get(row["color"]["id"], {}), row["quantity"])
-                 for row in rows if not row.get("is_spare") or body.get("include_spares") is True]
-        source = {"name": f"{number} · {info['name']}", "set_num": number, "parts": parts}
+        source = set_catalog.inventory(number, body.get("include_spares") is True)
+        if source is not None:
+            source["parts"] = _provider_parts(source["parts"])
+        else:
+            info = catalog(f"sets/{number}/")
+            rows = catalog_rows(f"sets/{number}/parts/", inc_part_details=1, inc_minifig_parts=1)
+            colors = {c["id"]: c for c in catalog_rows("colors/")}
+            parts = [_mapped(row["part"], colors.get(row["color"]["id"], {}), row["quantity"])
+                     for row in rows if not row.get("is_spare") or body.get("include_spares") is True]
+            source = {"name": f"{number} · {info['name']}", "set_num": number, "parts": parts}
     else:
         text = body.get("csv", "")
         if not isinstance(text, str) or len(text.encode()) > 5 * 1024 * 1024:
@@ -161,26 +165,31 @@ def preview(body: dict) -> dict:
             raise ValueError("Import between 1 and 10,000 CSV rows")
         if provider and not body.get("include_spares"):
             rows = [r for r in rows if str(r.get("is_spare", "")).lower() not in ("true", "1")]
-        colors, details = {}, {}
-        if provider:
-            colors = {str(c["id"]): c for c in catalog_rows("colors/")}
-            ids = sorted({r["part_num"] for r in rows})
-            if any(not _part(p) for p in ids):
-                raise ValueError("Invalid Rebrickable part number")
-            for offset in range(0, len(ids), 100):
-                details.update({p["part_num"]: p for p in catalog_rows("parts/", part_nums=",".join(ids[offset:offset + 100]), inc_part_details=1)})
         parts = []
         for row in rows:
             try:
                 quantity = int(row["quantity"])
                 if provider:
-                    parts.append(_mapped(details.get(row["part_num"], {"part_num": row["part_num"]}), colors.get(row["color_id"], {}), quantity))
+                    row["quantity"] = quantity
                 else:
                     parts.append({"part": row["part"], "colour": int(row["colour"]), "quantity": quantity})
             except (ValueError, TypeError):
                 raise ValueError("CSV colors and quantities must be integers") from None
-        source = {"name": body.get("name") or "Uploaded parts", "parts": parts}
+        source = {"name": body.get("name") or "Uploaded parts", "parts": _provider_parts(rows) if provider else parts}
     return clean_source(source)
+
+
+def _provider_parts(rows: list[dict]) -> list[dict]:
+    """Reuse batched API mapping for bulk inventories and Rebrickable CSV files."""
+    colors = {str(c["id"]): c for c in catalog_rows("colors/")}
+    ids = sorted({row["part_num"] for row in rows})
+    if any(not _part(part) for part in ids):
+        raise ValueError("Invalid Rebrickable part number")
+    details = {}
+    for offset in range(0, len(ids), 100):
+        details.update({part["part_num"]: part for part in catalog_rows("parts/", part_nums=",".join(ids[offset:offset + 100]), inc_part_details=1)})
+    return [_mapped(details.get(row["part_num"], {"part_num": row["part_num"], "name": row.get("name", "")}),
+                    colors.get(str(row["color_id"]), {"id": row["color_id"]}), row["quantity"]) for row in rows]
 
 
 def clean_source(source: dict) -> dict:

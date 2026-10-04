@@ -98,7 +98,7 @@ export default function EnvironmentSettings() {
               }}>Remove</button>}</span>
           </label>
           {row.fixed ? <small id="typesafe-hint" className="muted typesafe-hint"><em>This is required for finding required parts via Jev's semantic search</em></small>
-            : <><small id="rebrickable-hint" className="muted typesafe-hint">Save your key to download all LEGO sets for local search. Importing a set’s parts uses the Rebrickable API.</small><SetCatalogStatus /></>}
+            : <><small id="rebrickable-hint" className="muted typesafe-hint">Save your key to download LEGO sets and parts for local search and imports.</small><SetCatalogStatus /></>}
         </div> : <div className="environment-row" key={row.key}>
           <label>
             <span>Name</span>
