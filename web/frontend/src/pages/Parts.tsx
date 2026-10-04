@@ -1,12 +1,14 @@
 import { useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { api, type PartsSource } from "../api";
+import SetCatalogStatus from "../components/SetCatalogStatus";
 
 export default function Parts() {
   const [params] = useSearchParams();
   const returnTo = params.get("return");
   const [sources, setSources] = useState<PartsSource[]>([]);
-  const [configured, setConfigured] = useState(false);
+  const [catalog, setCatalog] = useState<Awaited<ReturnType<typeof api.setCatalog>> | null>(null);
+  const configured = !!catalog?.configured;
   const [loaded, setLoaded] = useState(false);
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<Awaited<ReturnType<typeof api.searchSets>> | null>(null);
@@ -16,7 +18,7 @@ export default function Parts() {
   const [spares, setSpares] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
-  useEffect(() => { api.collection().then(r => { setSources(r.sources); setConfigured(r.catalog_configured); setLoaded(true); }).catch(e => setError(e.message)); }, []);
+  useEffect(() => { api.collection().then(r => { setSources(r.sources); setLoaded(true); }).catch(e => setError(e.message)); }, []);
   async function work(action: () => Promise<void>) {
     setBusy(true); setError("");
     try { await action(); } catch (e) { setError((e as Error).message); }
@@ -37,16 +39,17 @@ export default function Parts() {
     {error && <div className="banner error" role="alert">{error}</div>}
     <section className="panel" aria-label="Import parts">
       <h2>Add a set</h2>
-      {!configured && <p className="muted">Set search needs a Rebrickable API key. <Link to="/settings?environment=REBRICKABLE_API_KEY#environment-heading">Set up Rebrickable</Link> to enter your key. CSV with LDraw IDs works without a key.</p>}
+      {catalog && !configured && <p className="muted">Downloading the catalog and importing sets needs a Rebrickable API key. <Link to="/settings?environment=REBRICKABLE_API_KEY#environment-heading">Set up Rebrickable</Link> to enter your key. CSV with LDraw IDs works without a key.</p>}
+      <SetCatalogStatus onChange={setCatalog} />
       <form className="head-actions" onSubmit={e => { e.preventDefault(); void search(query); }}>
         <input aria-label="Set name, number, or URL" placeholder="Set name, number, or LEGO / BrickLink / Rebrickable URL" value={query} onChange={e => setQuery(e.target.value)} />
-        <button disabled={busy || !query.trim() || !configured}>Search sets</button>
+        <button disabled={busy || !query.trim() || !catalog?.ready}>Search sets</button>
       </form>
       <label className="parts-option"><input type="checkbox" checked={spares} onChange={e => setSpares(e.target.checked)} disabled={busy} /> Include spare pieces when importing sets</label>
       {results && <div className="parts-search-results">
         {results.sets.length === 0 && <p className="muted">No sets found.</p>}
         {results.sets.map(s => <div className="parts-source-head" key={s.set_num}><span><strong>{s.name}</strong><span className="muted small"> · {s.set_num} · {s.year} · {s.num_parts} pieces</span></span>
-          <button disabled={busy} onClick={() => void work(async () => setPreview(await api.previewParts({ set: s.set_num, include_spares: spares })))}>Review parts</button></div>)}
+          <button disabled={busy || !configured} onClick={() => void work(async () => setPreview(await api.previewParts({ set: s.set_num, include_spares: spares })))}>Review parts</button></div>)}
         <div className="head-actions">{page > 1 && <button disabled={busy} onClick={() => void search(searchQuery, page - 1)}>Previous</button>}
           {results.next && <button disabled={busy} onClick={() => void search(searchQuery, page + 1)}>Next</button>}</div>
       </div>}

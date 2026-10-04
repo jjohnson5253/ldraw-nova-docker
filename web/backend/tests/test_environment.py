@@ -214,3 +214,18 @@ def test_name_collision_checks_preserve_private_values_and_original_environment(
     assert check(rows[1]["name"], rows[1]["id"]) == {"preconfigured": False, "saved": False}
     assert check(rows[1]["name"])["saved"] is True
     assert check("invalid-name") == {"preconfigured": False, "saved": False}
+
+
+def test_saving_rebrickable_key_triggers_full_sync_only_when_key_changes(monkeypatch):
+    monkeypatch.delenv("REBRICKABLE_API_KEY", raising=False)
+    calls = []
+    monkeypatch.setattr(main.set_catalog, "ensure", lambda **kw: calls.append(kw))
+    client = TestClient(main.app)
+    response = client.put("/api/environment", json={"variables": [{"name": "REBRICKABLE_API_KEY", "value": "private-key"}]})
+    assert response.status_code == 200 and "private-key" not in response.text
+    assert calls[-1] == {"refresh": True}
+    rows = [r for r in response.json()["variables"] if not r["fixed"]]
+    client.put("/api/environment", json={"variables": rows + [{"name": "OTHER", "value": "example"}]})
+    assert calls[-1] == {"refresh": False}  # Preserve the saved key; no full redownload.
+    client.put("/api/environment", json={"variables": [{**rows[0], "value": "replacement-key"}]})
+    assert calls[-1] == {"refresh": True}

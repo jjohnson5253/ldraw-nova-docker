@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useSearchParams } from "react-router-dom";
 import { api, type EnvironmentVariable } from "../api";
 import { useApp } from "../context";
+import SetCatalogStatus from "./SetCatalogStatus";
 
 type Row = { key: string; id?: string; name: string; value: string | null; has_value: boolean; fixed: boolean };
 const rebrickableRow = (): Row => ({ key: "rebrickable-setup", name: "REBRICKABLE_API_KEY", value: null, has_value: false, fixed: false });
@@ -97,7 +98,7 @@ export default function EnvironmentSettings() {
               }}>Remove</button>}</span>
           </label>
           {row.fixed ? <small id="typesafe-hint" className="muted typesafe-hint"><em>This is required for finding required parts via Jev's semantic search</em></small>
-            : <small id="rebrickable-hint" className="muted typesafe-hint">Used to search LEGO sets and import their parts from Rebrickable.</small>}
+            : <><small id="rebrickable-hint" className="muted typesafe-hint">Save your key to download all LEGO sets for local search. Importing a set’s parts uses the Rebrickable API.</small><SetCatalogStatus /></>}
         </div> : <div className="environment-row" key={row.key}>
           <label>
             <span>Name</span>

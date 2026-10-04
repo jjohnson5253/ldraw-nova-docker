@@ -32,6 +32,10 @@ def offline_model_details(monkeypatch):
     async def unavailable(*args, **kwargs):
         raise RuntimeError("Catalogue offline in tests")
     monkeypatch.setattr(model_discovery, "_fetch_json", unavailable)
+    import set_catalog
+    def unavailable_download(*args):
+        raise RuntimeError("Catalog offline in tests")
+    monkeypatch.setattr(set_catalog, "_download", unavailable_download)
 
 
 @pytest.fixture

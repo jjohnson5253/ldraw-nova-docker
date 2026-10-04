@@ -27,7 +27,12 @@ Open **My parts** to import sets or review a CSV collection. Set search and
 Rebrickable CSV imports require `REBRICKABLE_API_KEY`, configured through the
 existing **Settings → Environment** editor. LEGO, BrickLink and Rebrickable set
 URLs are accepted as set-number inputs; Rebrickable supplies their inventories.
-Search is on demand, without a full catalog mirror.
+Saving the key downloads Rebrickable's complete set catalog and theme names in
+the background to `data/catalog/rebrickable.sqlite`. Search then runs locally,
+including after restarts, without an API request per search. Settings and My
+parts show download progress and offer a catalog refresh. Failed refreshes keep
+the previous catalog usable. Importing a selected set's inventory and mapping
+part/color IDs still uses the API; the downloaded catalog is for set search.
 
 Offline CSV uses `part,colour,quantity` with LDraw IDs (optional `.dat` suffix)
 and explicit LDraw color codes. Rebrickable CSV uses `part_num,color_id,quantity`;

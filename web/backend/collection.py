@@ -20,6 +20,7 @@ from urllib.request import Request, build_opener, HTTPRedirectHandler
 
 import environment_config
 import settings
+import set_catalog
 import toolkit
 
 _lock = threading.RLock()
@@ -107,11 +108,10 @@ def set_number(value: str) -> str | None:
 
 
 def search(value: str, page: int = 1) -> dict:
-    if not value.strip() or len(value) > 500 or not 1 <= page <= 1000:
+    if not value.strip() or len(value) > 500 or not 1 <= page <= 10000:
         raise ValueError("Enter a set name, number, or URL")
     number = set_number(value)
-    data = catalog(f"sets/{number}/") if number else catalog("sets/", search=value.strip(), page=page, page_size=20)
-    return {"sets": [data] if number else data["results"], "next": bool(data.get("next"))}
+    return set_catalog.search(value, page, number)
 
 
 def _part(value) -> str | None:

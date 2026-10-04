@@ -30,6 +30,7 @@ from starlette.background import BackgroundTask
 
 import agent
 import collection
+import set_catalog
 import gallery
 import glb
 import llm_config
@@ -54,7 +55,9 @@ async def lifespan(_app: FastAPI):
         folder.mkdir(parents=True, exist_ok=True)
     sandbox.give_to_agent(settings.GENERATED_DIR)      # agent scripts may publish models there
     get_store()
+    set_catalog.ensure()
     yield
+    await asyncio.to_thread(set_catalog.shutdown)
     await browser_auth.shutdown()
     for chat_id in list(agent._runs):
         await agent.cancel(chat_id)
@@ -117,7 +120,11 @@ async def environment_save(request: Request):
     if not isinstance(body, dict) or not isinstance(body.get("variables"), list):
         raise HTTPException(400, "Expected a list of environment variables")
     try:
-        return {"variables": environment_config.save(body["variables"])}
+        previous = environment_config.snapshot().get("REBRICKABLE_API_KEY")
+        variables = environment_config.save(body["variables"])
+        current = environment_config.snapshot().get("REBRICKABLE_API_KEY")
+        set_catalog.ensure(refresh=current != previous)
+        return {"variables": variables}
     except ValueError as exc:
         raise HTTPException(400, str(exc)) from None
 
@@ -574,6 +581,19 @@ def model_from_url(url: str) -> Optional[Path]:
 
 
 # --- owned parts -----------------------------------------------------------
+
+@app.get("/api/collection/catalog")
+def collection_catalog():
+    return {**set_catalog.status(), "configured": bool(environment_config.snapshot().get("REBRICKABLE_API_KEY"))}
+
+
+@app.post("/api/collection/catalog")
+def collection_catalog_refresh():
+    if not environment_config.snapshot().get("REBRICKABLE_API_KEY"):
+        raise HTTPException(400, "Add REBRICKABLE_API_KEY in Settings to download the catalog")
+    set_catalog.ensure(refresh=True)
+    return collection_catalog()
+
 
 @app.get("/api/collection")
 def collection_get():

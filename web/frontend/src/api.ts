@@ -111,7 +111,10 @@ async function request<T>(url: string, init?: RequestInit): Promise<T> {
 
 const json = (body: unknown) => JSON.stringify(body);
 
+export type SetCatalogStatus = { ready: boolean; configured: boolean; state: "empty" | "syncing" | "ready" | "error"; total_sets?: number; updated_at?: string; stage?: string; indexed?: number; error?: string };
+
 export const api = {
+  setCatalog: (refresh = false) => request<SetCatalogStatus>("/api/collection/catalog", refresh ? { method: "POST" } : undefined),
   collection: () => request<{ sources: PartsSource[]; catalog_configured: boolean }>("/api/collection"),
   searchSets: (search: string, page = 1) => request<{ sets: { set_num: string; name: string; num_parts: number; year: number }[]; next: boolean }>(`/api/collection/sets?search=${encodeURIComponent(search)}&page=${page}`),
   previewParts: (body: { set?: string; csv?: string; name?: string; include_spares?: boolean }) => request<PartsSource>("/api/collection/preview", { method: "POST", body: json(body) }),
