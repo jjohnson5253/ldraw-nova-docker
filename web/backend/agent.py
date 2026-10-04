@@ -108,7 +108,7 @@ def work_listing(work_dir: Path) -> str:
     return "\n".join(lines) or "(empty)"
 
 
-def system_prompt(store: ChatStore, chat_id: str, inventory_path: str | None = None) -> str:
+def system_prompt(store: ChatStore, chat_id: str, inventory_path: str | None = None, prefer_my_parts: bool = False) -> str:
     work_dir = store.work_dir(chat_id)
     text = (settings.PROMPTS_DIR / "system.md").read_text()
     prompt = (text.replace("{work_dir}", str(work_dir))
@@ -123,14 +123,22 @@ def system_prompt(store: ChatStore, chat_id: str, inventory_path: str | None = N
         with notes.open(errors="replace") as handle:
             prompt += "\n\nCurrent hand-over notes (workspace data):\n" + handle.read(16000)
     if inventory_path:
-        prompt += ("\n\nUse only my parts is selected. Read the owned inventory at " + inventory_path +
+        prompt += (("\n\nUse as many of my parts as possible is selected. Read the owned inventory at " if prefer_my_parts else
+                    "\n\nUse only my parts is selected. Read the owned inventory at ") + inventory_path +
                    ". It is a fixed snapshot for this turn, with LDraw part IDs, explicit LDraw colour codes, and quantities. "
                    "Only rows with both part and colour mappings can be used. Sum stock across duplicate rows. "
                    "Preserve the requested subject using your existing design and validation tools. "
-                   "Do not exceed any part/color quantity; copies across all steps and submodels count. "
+                   "Count owned quantities accurately; copies across all steps and submodels count. "
                    "Check ./ldraw-agent bom MODEL --inventory INVENTORY --report REPORT before publish_model. "
-                   "Publication independently checks the snapshot. If the inventory cannot represent the subject, "
-                   "explain the limitation instead of claiming success. Keep any existing published model intact.")
+                   "Publication independently compares the snapshot. Keep any existing published model intact.")
+        if prefer_my_parts:
+            prompt += (" Prioritize easy wins: replace missing colors with colors owned for the same part, within stock quantities. "
+                       "Then consider simple substitutions using your existing tools while preserving the subject and construction. "
+                       "Unowned parts are allowed when needed. Report owned and missing counts honestly; do not claim everything is owned. "
+                       "Repair validation errors before publishing.")
+        else:
+            prompt += (" Do not exceed any part/color quantity. Publication requires all parts to fit the owned inventory. "
+                       "If the inventory cannot represent the subject, explain the limitation instead of claiming success.")
     return prompt
 
 
@@ -233,11 +241,11 @@ async def start_turn(store: ChatStore, chat_id: str, text: str, llm_model_id: Op
         raise RuntimeError("this chat is already running a turn")
 
     inventory, inventory_path = None, None
-    if options.get("use_only_my_parts"):
+    if options.get("use_only_my_parts") or options.get("prefer_my_parts"):
         import collection
         inventory = collection.snapshot()
         if not any(row.get("part") and row.get("colour") is not None and row["quantity"] > 0 for row in inventory["parts"]):
-            raise ValueError("Add available, mapped parts in My parts before choosing Use only my parts")
+            raise ValueError("Add available, mapped parts in My parts before using your parts")
     chat = store.get_chat(chat_id)
     if chat["title"] == "New chat":
         title = " ".join(text.split())
@@ -305,7 +313,7 @@ async def _run_turn(store: ChatStore, run: Run, entry: dict) -> None:
     caps = llm_config.capabilities(entry)
     vision = caps["vision"] is True
     use_tools = caps["tools"] is not False and run.options.get("mode") != "chat"
-    ctx = ToolContext(chat_id=chat_id, store=store, emit=run.emit, inventory=run.options.get("_inventory"))
+    ctx = ToolContext(chat_id=chat_id, store=store, emit=run.emit, inventory=run.options.get("_inventory"), prefer_my_parts=run.options.get("prefer_my_parts", False))
 
     def save(message: dict) -> int:
         msg_id = store.add_message(chat_id, message)
@@ -315,11 +323,11 @@ async def _run_turn(store: ChatStore, run: Run, entry: dict) -> None:
     try:
         if entry.get("auth_mode") == "browser" and entry["litellm_params"]["model"].startswith("anthropic/"):
             from claude_agent import run_claude
-            await run_claude(store, run, entry, save, execute_tool, system_prompt(store, chat_id, run.options.get("_inventory_path")), use_tools)
+            await run_claude(store, run, entry, save, execute_tool, system_prompt(store, chat_id, run.options.get("_inventory_path"), run.options.get("prefer_my_parts", False)), use_tools)
             return
         params = await inference.params_for(entry, run.options)
         for _step in range(MAX_STEPS):
-            prompt = system_prompt(store, chat_id, run.options.get("_inventory_path")) + mode_prompt(run.options)
+            prompt = system_prompt(store, chat_id, run.options.get("_inventory_path"), run.options.get("prefer_my_parts", False)) + mode_prompt(run.options)
             messages = [{"role": "system", "content": prompt},
                         *llm_history(store.messages(chat_id), vision, lambda ref: store.resolve(chat_id, ref), entry["litellm_params"]["model"], mark_turns=True)]
             budget = run.options.get("context_tokens") or model_catalog.profile(entry["litellm_params"]["model"])["context_window"]

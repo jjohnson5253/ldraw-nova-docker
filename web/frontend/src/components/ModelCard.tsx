@@ -9,7 +9,7 @@ type Props = {
   model: ModelFile & { warnings?: string[]; created_at?: number };
   showChats?: boolean;
   onDelete?: () => Promise<void>;
-  onUseParts?: () => Promise<void>;
+  onUseParts?: (prefer: boolean) => Promise<void>;
   running?: boolean;
 };
 

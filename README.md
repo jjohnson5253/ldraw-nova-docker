@@ -45,11 +45,13 @@ its part and color IDs are mapped through the API. Review unmapped rows, per-cop
 quantities, copies and availability before saving. Sources persist in
 `data/collection.json`; overlapping imports contribute additional stock.
 
-Generated model cards show owned/missing counts. **Use only my parts** appears
-in the composer and on models generated without that option. It passes a frozen
-collection snapshot to the existing agent, and publication requires both normal
-validation and an exact part/color/quantity match. The original model stays
-available. This requires the matching toolkit branch containing
+Generated model cards show owned/missing counts. The composer and
+**Rebuild with my parts** offer **Use only my parts** and **Use as many of my
+parts as possible**. Both pass a frozen collection snapshot to the existing
+agent. Strict mode requires normal validation and an exact part/color/quantity
+match before publication. Best effort prioritizes the same part in an owned
+color, permits missing parts, and reports the actual owned/missing counts.
+The original model stays available. This requires the matching toolkit branch containing
 `bom --inventory` and `LDRAW_NOVA_CACHE_DIR` support. There is no purchase flow.
 
 ## Development

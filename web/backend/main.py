@@ -664,12 +664,16 @@ async def collection_adapt(body: dict):
         _not_found("No such chat")
     if not any(p.get("part") and p.get("colour") is not None and p["quantity"] for p in collection.snapshot()["parts"]):
         raise HTTPException(400, "Add available, mapped parts in My parts first")
+    prefer = body.get("prefer_my_parts", False)
+    if type(prefer) is not bool:
+        raise HTTPException(400, "Parts options must be boolean")
     created = chat is None
     if created:
         chat = store.create_chat(title=f"Use my parts · {model.stem}"[:60])
     try:
-        options = {**(chat.get("options") or {}), "mode": "agent", "use_only_my_parts": True}
-        await agent.start_turn(store, chat["id"], f"Create a new revision of {model} using only my owned parts. Preserve its subject and keep the original model intact.",
+        options = {**(chat.get("options") or {}), "mode": "agent", "use_only_my_parts": not prefer, "prefer_my_parts": prefer}
+        usage = "using as many of my owned parts as possible, prioritizing the same part in an owned color" if prefer else "using only my owned parts"
+        await agent.start_turn(store, chat["id"], f"Create a new revision of {model} {usage}. Preserve its subject and keep the original model intact.",
                                chat.get("llm_model_id"), options)
     except (ValueError, RuntimeError) as exc:
         if created:

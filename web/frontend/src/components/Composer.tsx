@@ -152,8 +152,10 @@ export default function Composer({ llmId, onLlmChange, onSend, onStop, running, 
         <button type="submit" className="primary send-button" disabled={!text.trim() || busy || !model}>Send <span aria-hidden>↑</span></button>}
     </div>
     <div className="composer-hint muted parts-option">
-      <label><input type="checkbox" checked={options.use_only_my_parts ?? false} disabled={disabled}
-        onChange={e => setOptions({ ...options, use_only_my_parts: e.target.checked })} /> Use only my parts</label>
+      <label>Parts <select aria-label="Parts usage" value={options.use_only_my_parts ? "only" : options.prefer_my_parts ? "prefer" : "any"} disabled={disabled}
+        onChange={e => setOptions({ ...options, use_only_my_parts: e.target.value === "only", prefer_my_parts: e.target.value === "prefer" })}>
+        <option value="any">Any parts</option><option value="prefer">Use as many of my parts as possible</option><option value="only">Use only my parts</option>
+      </select></label>
       <Link to="/parts">My parts</Link><span>Enter to send · Shift+Enter for a new line</span>
     </div>
   </form>;

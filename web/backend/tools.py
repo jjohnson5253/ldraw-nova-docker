@@ -41,6 +41,7 @@ class ToolContext:
     store: ChatStore
     emit: Callable[[str, dict], None]
     inventory: dict | None = None
+    prefer_my_parts: bool = False
 
     @property
     def work_dir(self) -> Path:
@@ -180,13 +181,13 @@ async def t_publish_model(ctx: ToolContext, path: str, name: str | None = None) 
         return ToolResult("Error: toolkit validation could not finish; model was not published.\n" + validation.as_text())
     if ctx.inventory is not None:
         from collection import compare
-        if validation.exit_code != 0:
+        if validation.exit_code != 0 and not ctx.prefer_my_parts:
             return ToolResult("Error: Use only my parts requires a valid model before publication. Repair the validation errors.\n" + validation.as_text())
         try:
             inventory_report = await compare(revision, ctx.inventory)
         except ValueError as exc:
             return ToolResult("Error: inventory check failed; model was not published. " + str(exc))
-        if not inventory_report["matches"]:
+        if not inventory_report["matches"] and not ctx.prefer_my_parts:
             return ToolResult("Error: model was not published because it exceeds the owned inventory. Revise using the attached inventory and retry.\n" + json.dumps(inventory_report))
     warnings = ["Physical buildability is not proven; read the validation and visual review reports."]
     if validation.exit_code == 1:
@@ -209,7 +210,7 @@ async def t_publish_model(ctx: ToolContext, path: str, name: str | None = None) 
         shutil.copyfile(bom, bom_path_for(target))
     else:
         warnings.append("Preview/BOM rendering failed; the model can still be opened in 3D.")
-    ref = ctx.store.add_model(ctx.chat_id, name or source.stem, target, warnings, use_only_my_parts=ctx.inventory is not None)
+    ref = ctx.store.add_model(ctx.chat_id, name or source.stem, target, warnings, use_only_my_parts=ctx.inventory is not None and not ctx.prefer_my_parts)
     ctx.emit("model", {"id": ref["id"], "name": ref["name"]})
     model_url = "/files/generated/" + quote(target.name)
     result = {"model_url": model_url, "source": artifact_url(ctx, source),

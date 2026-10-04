@@ -65,7 +65,7 @@ export type EnvironmentVariable = { id: string; name: string; value: null; has_v
 export type EnvironmentUpdate = { id?: string; name: string; value: string | null };
 export type DocumentUpload = { name: string; data: string };
 export type ConnectionStatus = "not_tested" | "connected" | "not_connected";
-export type TurnOptions = { mode: "plan" | "agent"; permissions: "ask" | "full" | "read_only"; effort?: string | null; context_tokens?: number | null; use_only_my_parts?: boolean };
+export type TurnOptions = { mode: "plan" | "agent"; permissions: "ask" | "full" | "read_only"; effort?: string | null; context_tokens?: number | null; use_only_my_parts?: boolean; prefer_my_parts?: boolean };
 export type OwnedPart = { part: string | null; colour: number | null; quantity: number; description?: string; provider_part?: string; provider_color?: number };
 export type PartsSource = { id?: string; name: string; set_num?: string; copies: number; available: boolean; parts: OwnedPart[] };
 export type InventoryReport = { required: number; owned: number; missing: number; unresolved: number; unmapped_inventory: number; matches: boolean; has_collection: boolean; has_available_parts: boolean;
@@ -121,7 +121,7 @@ export const api = {
   saveParts: (source: PartsSource) => request<{ sources: PartsSource[] }>(`/api/collection/sources${source.id ? "/" + source.id : ""}`, { method: source.id ? "PUT" : "POST", body: json(source) }),
   removeParts: (id: string) => request<{ sources: PartsSource[] }>(`/api/collection/sources/${id}`, { method: "DELETE" }),
   compareParts: (url: string) => request<InventoryReport>(`/api/collection/compare?url=${encodeURIComponent(url)}`),
-  useOnlyParts: (url: string, chat_id?: string) => request<{ chat_id: string }>("/api/collection/adapt", { method: "POST", body: json({ url, chat_id }) }),
+  useParts: (url: string, prefer_my_parts: boolean, chat_id?: string) => request<{ chat_id: string }>("/api/collection/adapt", { method: "POST", body: json({ url, chat_id, prefer_my_parts }) }),
   environment: () => request<{ variables: EnvironmentVariable[] }>("/api/environment"),
   checkEnvironment: (name: string, id?: string) => request<{ preconfigured: boolean; saved: boolean }>(`/api/environment/check?name=${encodeURIComponent(name)}&exclude_id=${encodeURIComponent(id ?? "")}`),
   saveEnvironment: (variables: EnvironmentUpdate[]) => request<{ variables: EnvironmentVariable[] }>("/api/environment", { method: "PUT", body: json({ variables }) }),

@@ -276,7 +276,8 @@ def test_login_cancellation_terminates_process_group(monkeypatch):
 
 
 @pytest.mark.parametrize("inventory", [None, {"parts": [{"part": "3001", "colour": 4, "quantity": 2}]}])
-def test_claude_adapter_exposes_only_app_tools_and_runs_gate(monkeypatch, inventory):
+@pytest.mark.parametrize("prefer", [False, True])
+def test_claude_adapter_exposes_only_app_tools_and_runs_gate(monkeypatch, inventory, prefer):
     import claude_agent
     from claude_agent_sdk import AssistantMessage, TextBlock
     recorded = {}
@@ -300,7 +301,7 @@ def test_claude_adapter_exposes_only_app_tools_and_runs_gate(monkeypatch, invent
     store = ChatStore(settings.CHATS_DIR, settings.OUTPUT_DIR)
     chat = store.create_chat()
     store.add_message(chat["id"], {"role": "user", "content": "find bricks"})
-    run = agent.Run(chat["id"], options={"mode": "plan", "permissions": "full", "_inventory": inventory})
+    run = agent.Run(chat["id"], options={"mode": "plan", "permissions": "full", "_inventory": inventory, "prefer_my_parts": prefer})
     entry = {"litellm_params": {"model": "anthropic/claude-opus-5-5"}}
     saved = []
     asyncio.run(claude_agent.run_claude(store, run, entry, saved.append, execute, "system", True))
@@ -310,4 +311,5 @@ def test_claude_adapter_exposes_only_app_tools_and_runs_gate(monkeypatch, invent
     assert set(t.name for t in recorded["tools"]) == agent.READ_TOOLS
     assert recorded["executed"][3] == "read_file"
     assert recorded["executed"][1].inventory is inventory
+    assert recorded["executed"][1].prefer_my_parts is prefer
     assert [m["role"] for m in saved] == ["assistant", "tool", "assistant"]

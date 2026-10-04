@@ -105,7 +105,8 @@ def test_api_import_is_reviewed_before_persisting_and_reports_real_bom(owned):
     assert client.delete("/api/collection/sources/" + saved.json()["sources"][0]["id"]).status_code == 200
 
 
-def test_turn_attaches_a_frozen_inventory_and_empty_collection_does_not_start(owned, monkeypatch):
+@pytest.mark.parametrize("prefer", [False, True])
+def test_turn_attaches_a_frozen_inventory_and_empty_collection_does_not_start(owned, monkeypatch, prefer):
     store = ChatStore(settings.CHATS_DIR, settings.OUTPUT_DIR)
     entry = llm_config.create({"model_name": "Collection test", "litellm_params": {"model": "openai/gpt-6-luna", "api_key": "test"}, "capabilities": {"tools": True, "vision": True}})
     chat = store.create_chat()
@@ -115,10 +116,10 @@ def test_turn_attaches_a_frozen_inventory_and_empty_collection_does_not_start(ow
     monkeypatch.setattr(agent, "_run_turn", fake_turn)
     async def run():
         with pytest.raises(ValueError, match="Add available"):
-            await agent.start_turn(store, chat["id"], "Build a bridge", entry["id"], {"use_only_my_parts": True})
+            await agent.start_turn(store, chat["id"], "Build a bridge", entry["id"], {"use_only_my_parts": not prefer, "prefer_my_parts": prefer})
         assert store.messages(chat["id"]) == []
         collection.save(owned)
-        await agent.start_turn(store, chat["id"], "Build a bridge", entry["id"], {"use_only_my_parts": True})
+        await agent.start_turn(store, chat["id"], "Build a bridge", entry["id"], {"use_only_my_parts": not prefer, "prefer_my_parts": prefer})
         await agent._runs[chat["id"]].task
     asyncio.run(run())
     [document] = store.messages(chat["id"])[0]["_documents"]
@@ -126,8 +127,11 @@ def test_turn_attaches_a_frozen_inventory_and_empty_collection_does_not_start(ow
     assert payload == {"parts": [{"part": "3001", "colour": 4, "quantity": 6}]}
     assert captures[0]["_inventory"] == payload
     assert not any(k.startswith("_") for k in store.get_chat(chat["id"])["options"])
-    prompt = agent.system_prompt(store, chat["id"], captures[0]["_inventory_path"])
-    assert "Use only my parts is selected" in prompt and "--inventory" in prompt
+    prompt = agent.system_prompt(store, chat["id"], captures[0]["_inventory_path"], prefer)
+    assert ("Use as many of my parts as possible is selected" if prefer else "Use only my parts is selected") in prompt
+    assert "--inventory" in prompt
+    if prefer:
+        assert "same part" in prompt and "Unowned parts are allowed" in prompt
     # Agent edits to its attachment cannot alter the publication gate.
     store.resolve(chat["id"], document["path"]).write_text('{"parts":[]}')
     assert captures[0]["_inventory"]["parts"][0]["quantity"] == 6
@@ -155,7 +159,8 @@ def test_publish_gate_rejects_shortages_or_invalid_geometry_without_copying_a_ne
     assert set(settings.GENERATED_DIR.glob("*.mpd")) == before
 
 
-def test_real_inventory_publication_matches_the_expanded_bom(owned):
+@pytest.mark.parametrize("prefer", [False, True])
+def test_real_inventory_publication_matches_the_expanded_bom(owned, prefer):
     import os
     os.chmod(settings.CHATS_DIR.parent.parent, 0o755)
     store = ChatStore(settings.CHATS_DIR, settings.OUTPUT_DIR)
@@ -168,10 +173,44 @@ def test_real_inventory_publication_matches_the_expanded_bom(owned):
         counted = await tools.run_command(ctx, ["./ldraw-agent", "bom", "output/bridge.mpd", "--report", str(report)], 60)
         assert counted.exit_code == 0, counted.as_text()
         ctx.inventory = {"parts": [{"part": r["part"], "colour": r["colour_code"], "quantity": r["quantity"]} for r in json.loads(report.read_text())["bom"]]}
+        ctx.prefer_my_parts = prefer
+        if prefer:
+            # Best effort may publish a valid model with shortages; exact counts
+            # must remain truthful and its model must not be marked strict.
+            ctx.inventory["parts"] = [{**ctx.inventory["parts"][0], "quantity": 1}]
         published = await tools.t_publish_model(ctx, "output/bridge.mpd", "Owned bridge")
         assert len(published.models) == 1, published.content
-        assert published.models[0]["use_only_my_parts"] is True
+        assert published.models[0]["use_only_my_parts"] is (not prefer)
         checked = json.loads(published.content)["inventory"]
-        assert checked["matches"] and checked["required"] == checked["owned"] == 5
-        assert checked["missing"] == checked["unresolved"] == 0
+        assert checked["required"] == 5 and checked["unresolved"] == 0
+        assert checked["matches"] is (not prefer)
+        assert (checked["owned"], checked["missing"]) == ((1, 4) if prefer else (5, 0))
     asyncio.run(run())
+
+
+@pytest.mark.parametrize("prefer", [False, True])
+def test_rebuild_keeps_full_permission_and_selects_requested_inventory_mode(owned, monkeypatch, prefer):
+    import main
+    collection.save(owned)
+    store = ChatStore(settings.CHATS_DIR, settings.OUTPUT_DIR)
+    monkeypatch.setattr(main, "get_store", lambda: store)
+    chat = store.create_chat()
+    store.update_chat(chat["id"], options={"permissions": "full", "use_only_my_parts": True})
+    path = settings.GENERATED_DIR / "adapt-mode-test.mpd"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text("0 Cottage")
+    captured = {}
+    async def start(store, chat_id, text, llm_id, options):
+        captured.update(options=options, text=text)
+    monkeypatch.setattr(agent, "start_turn", start)
+    try:
+        response = TestClient(app).post("/api/collection/adapt", json={
+            "url": "/files/generated/adapt-mode-test.mpd", "chat_id": chat["id"], "prefer_my_parts": prefer})
+        assert response.status_code == 202, response.text
+        assert captured["options"]["permissions"] == "full"
+        assert captured["options"]["use_only_my_parts"] is (not prefer)
+        assert captured["options"]["prefer_my_parts"] is prefer
+        assert ("same part in an owned color" if prefer else "using only my owned parts") in captured["text"]
+        assert path.read_text() == "0 Cottage"
+    finally:
+        path.unlink()

@@ -3,10 +3,11 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { api, type InventoryReport, type ModelFile } from "../api";
 import { useApp } from "../context";
 
-export default function PartsList({ model, onUseParts, running }: { model: ModelFile; onUseParts?: () => Promise<void>; running?: boolean }) {
+export default function PartsList({ model, onUseParts, running }: { model: ModelFile; onUseParts?: (prefer: boolean) => Promise<void>; running?: boolean }) {
   const [report, setReport] = useState<InventoryReport | null>(null);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const [prefer, setPrefer] = useState(false);
   const [version, setVersion] = useState(0);
   const navigate = useNavigate();
   const location = useLocation();
@@ -24,8 +25,8 @@ export default function PartsList({ model, onUseParts, running }: { model: Model
     }
     setBusy(true); setError("");
     try {
-      if (onUseParts) await onUseParts();
-      else { const result = await api.useOnlyParts(model.model_url!); refreshChats(); navigate(`/chat/${result.chat_id}`); }
+      if (onUseParts) await onUseParts(prefer);
+      else { const result = await api.useParts(model.model_url!, prefer); refreshChats(); navigate(`/chat/${result.chat_id}`); }
     } catch (e) { setError((e as Error).message); }
     finally { setBusy(false); }
   }
@@ -42,6 +43,8 @@ export default function PartsList({ model, onUseParts, running }: { model: Model
     </> : !error && <p className="muted small">Checking your owned parts…</p>}
     {error && <p className="warn-text small" role="alert">{error}</p>}
     <div className="head-actions"><Link to="/parts">My parts</Link><button disabled={busy} onClick={() => setVersion(v => v + 1)}>Refresh counts</button>
-      {!model.use_only_my_parts && <button disabled={busy || running || !report} onClick={() => void revise()}>{busy ? "Starting…" : "Use only my parts"}</button>}</div>
+      <select aria-label="Rebuild parts usage" value={prefer ? "prefer" : "only"} disabled={busy || running}
+        onChange={e => setPrefer(e.target.value === "prefer")}><option value="only">Use only my parts</option><option value="prefer">Use as many of my parts as possible</option></select>
+      <button disabled={busy || running || !report} onClick={() => void revise()}>{busy ? "Starting…" : "Rebuild with my parts"}</button></div>
   </div>;
 }
