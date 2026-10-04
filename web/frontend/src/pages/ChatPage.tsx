@@ -196,7 +196,9 @@ export default function ChatPage() {
   const idle = running && !draft && !persisting && tools.length === 0;
   const cards = placeChatModels(messages, detail.models);
   const publishedModels = Object.values(detail.models);
-  const modelCard = (m: ChatModel) => <div id={`model-${m.id}`} className="chat-model" key={m.id}><ModelCard model={m} /></div>;
+  const modelCard = (m: ChatModel) => <div id={`model-${m.id}`} className="chat-model" key={m.id}><ModelCard model={m} running={running} onUseParts={async () => {
+    await api.useOnlyParts(m.model_url!, id); await reload(); subscribe(); refreshChats();
+  }} /></div>;
   const elapsed = activity ? Math.max(0, Math.floor(now / 1000 - activity.started_at)) : 0;
 
   return (

@@ -40,6 +40,7 @@ class ToolContext:
     chat_id: str
     store: ChatStore
     emit: Callable[[str, dict], None]
+    inventory: dict | None = None
 
     @property
     def work_dir(self) -> Path:
@@ -177,6 +178,16 @@ async def t_publish_model(ctx: ToolContext, path: str, name: str | None = None) 
                                          "--detail", "summary", "--report", str(report)], 1800)
     if validation.exit_code not in (0, 1) or not report.is_file():
         return ToolResult("Error: toolkit validation could not finish; model was not published.\n" + validation.as_text())
+    if ctx.inventory is not None:
+        from collection import compare
+        if validation.exit_code != 0:
+            return ToolResult("Error: Use only my parts requires a valid model before publication. Repair the validation errors.\n" + validation.as_text())
+        try:
+            inventory_report = await compare(revision, ctx.inventory)
+        except ValueError as exc:
+            return ToolResult("Error: inventory check failed; model was not published. " + str(exc))
+        if not inventory_report["matches"]:
+            return ToolResult("Error: model was not published because it exceeds the owned inventory. Revise using the attached inventory and retry.\n" + json.dumps(inventory_report))
     warnings = ["Physical buildability is not proven; read the validation and visual review reports."]
     if validation.exit_code == 1:
         warnings.append("Toolkit validation failed. This revision is for inspection and needs repair.")
@@ -198,7 +209,7 @@ async def t_publish_model(ctx: ToolContext, path: str, name: str | None = None) 
         shutil.copyfile(bom, bom_path_for(target))
     else:
         warnings.append("Preview/BOM rendering failed; the model can still be opened in 3D.")
-    ref = ctx.store.add_model(ctx.chat_id, name or source.stem, target, warnings)
+    ref = ctx.store.add_model(ctx.chat_id, name or source.stem, target, warnings, use_only_my_parts=ctx.inventory is not None)
     ctx.emit("model", {"id": ref["id"], "name": ref["name"]})
     model_url = "/files/generated/" + quote(target.name)
     result = {"model_url": model_url, "source": artifact_url(ctx, source),
@@ -213,6 +224,8 @@ async def t_publish_model(ctx: ToolContext, path: str, name: str | None = None) 
     if image.exists():
         result["preview"] = artifact_url(ctx, image)
         result["preview_path"] = str(image)
+    if ctx.inventory is not None:
+        result["inventory"] = inventory_report
     if bom.exists():
         result["bom"] = artifact_url(ctx, bom)
         result["bom_path"] = str(bom)

@@ -8,6 +8,7 @@ import ChatPage from "./pages/ChatPage";
 import Home from "./pages/Home";
 import Models from "./pages/Models";
 import Settings from "./pages/Settings";
+import Parts from "./pages/Parts";
 
 export default function App() {
   const [chats, setChats] = useState<Chat[]>([]);
@@ -65,6 +66,7 @@ export default function App() {
             <Route path="/models" element={<Models key="models" collection="models" />} />
             <Route path="/gallery" element={<Models key="gallery" collection="gallery" />} />
             <Route path="/settings" element={<Settings />} />
+            <Route path="/parts" element={<Parts />} />
             <Route path="*" element={<Navigate to="/gallery" replace />} />
           </Routes>
         </main>

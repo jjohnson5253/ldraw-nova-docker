@@ -3,11 +3,14 @@ import { Link } from "react-router-dom";
 import { downloadGlb, downloadUrl, partsLabel, timeAgo, XR_TITLE, xrUrl, type ModelFile, type ViewerMode } from "../api";
 import { useApp } from "../context";
 import InfoModal from "./InfoModal";
+import PartsList from "./PartsList";
 
 type Props = {
   model: ModelFile & { warnings?: string[]; created_at?: number };
   showChats?: boolean;
   onDelete?: () => Promise<void>;
+  onUseParts?: () => Promise<void>;
+  running?: boolean;
 };
 
 function DownloadIcon() {
@@ -18,7 +21,7 @@ function DownloadIcon() {
   );
 }
 
-export default function ModelCard({ model, showChats = false, onDelete }: Props) {
+export default function ModelCard({ model, showChats = false, onDelete, onUseParts, running }: Props) {
   const { openViewer } = useApp();
   const open = (mode: ViewerMode = "viewer") =>
     model.model_url &&
@@ -163,6 +166,7 @@ export default function ModelCard({ model, showChats = false, onDelete }: Props)
             ) : null}
           </span>
         </div>
+        {!model.gallery && model.model_url && <PartsList model={model} onUseParts={onUseParts} running={running} />}
       </div>
       {info && model.info_url && (
         <InfoModal title={model.description || model.file} url={model.info_url} onClose={() => setInfo(false)} />

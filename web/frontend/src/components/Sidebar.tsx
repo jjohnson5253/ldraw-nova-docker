@@ -26,6 +26,7 @@ export default function Sidebar() {
       <nav className="nav">
         <NavLink to="/gallery">Gallery</NavLink>
         <NavLink to="/models">My Models</NavLink>
+        <NavLink to="/parts">My parts</NavLink>
         <NavLink to="/settings">Settings</NavLink>
       </nav>
 

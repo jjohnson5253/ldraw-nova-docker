@@ -21,6 +21,7 @@ export type ModelFile = {
   bom_status: SnapshotStatus;
   bom_error: string | null;
   chats?: { id: string; title: string }[]; // chats that produced it (My Models page)
+  use_only_my_parts?: boolean;
 };
 
 /** A model a chat produced: a reference into data/generated. */
@@ -64,7 +65,11 @@ export type EnvironmentVariable = { id: string; name: string; value: null; has_v
 export type EnvironmentUpdate = { id?: string; name: string; value: string | null };
 export type DocumentUpload = { name: string; data: string };
 export type ConnectionStatus = "not_tested" | "connected" | "not_connected";
-export type TurnOptions = { mode: "plan" | "agent"; permissions: "ask" | "full" | "read_only"; effort?: string | null; context_tokens?: number | null };
+export type TurnOptions = { mode: "plan" | "agent"; permissions: "ask" | "full" | "read_only"; effort?: string | null; context_tokens?: number | null; use_only_my_parts?: boolean };
+export type OwnedPart = { part: string | null; colour: number | null; quantity: number; description?: string; provider_part?: string; provider_color?: number };
+export type PartsSource = { id?: string; name: string; set_num?: string; copies: number; available: boolean; parts: OwnedPart[] };
+export type InventoryReport = { required: number; owned: number; missing: number; unresolved: number; unmapped_inventory: number; matches: boolean; has_collection: boolean; has_available_parts: boolean;
+  rows: { part: string; colour: number; description?: string; colour_name?: string; required: number; owned: number; missing: number; unresolved: number }[] };
 export type ModelProfile = {
   model: string; name: string; context_window: number | null; efforts: string[]; default_effort: string | null; context_budgets: number[];
   max_output_tokens?: number | null; tools?: boolean | null; vision?: boolean | null; reasoning?: boolean | null;
@@ -107,6 +112,13 @@ async function request<T>(url: string, init?: RequestInit): Promise<T> {
 const json = (body: unknown) => JSON.stringify(body);
 
 export const api = {
+  collection: () => request<{ sources: PartsSource[]; catalog_configured: boolean }>("/api/collection"),
+  searchSets: (search: string, page = 1) => request<{ sets: { set_num: string; name: string; num_parts: number; year: number }[]; next: boolean }>(`/api/collection/sets?search=${encodeURIComponent(search)}&page=${page}`),
+  previewParts: (body: { set?: string; csv?: string; name?: string; include_spares?: boolean }) => request<PartsSource>("/api/collection/preview", { method: "POST", body: json(body) }),
+  saveParts: (source: PartsSource) => request<{ sources: PartsSource[] }>(`/api/collection/sources${source.id ? "/" + source.id : ""}`, { method: source.id ? "PUT" : "POST", body: json(source) }),
+  removeParts: (id: string) => request<{ sources: PartsSource[] }>(`/api/collection/sources/${id}`, { method: "DELETE" }),
+  compareParts: (url: string) => request<InventoryReport>(`/api/collection/compare?url=${encodeURIComponent(url)}`),
+  useOnlyParts: (url: string, chat_id?: string) => request<{ chat_id: string }>("/api/collection/adapt", { method: "POST", body: json({ url, chat_id }) }),
   environment: () => request<{ variables: EnvironmentVariable[] }>("/api/environment"),
   checkEnvironment: (name: string, id?: string) => request<{ preconfigured: boolean; saved: boolean }>(`/api/environment/check?name=${encodeURIComponent(name)}&exclude_id=${encodeURIComponent(id ?? "")}`),
   saveEnvironment: (variables: EnvironmentUpdate[]) => request<{ variables: EnvironmentVariable[] }>("/api/environment", { method: "PUT", body: json({ variables }) }),

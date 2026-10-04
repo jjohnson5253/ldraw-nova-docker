@@ -129,9 +129,9 @@ class ChatStore:
 
     # --- models the chat produced (references into data/generated) ---------
 
-    def add_model(self, chat_id: str, name: str, model_path: Path, warnings: list[str]) -> dict:
+    def add_model(self, chat_id: str, name: str, model_path: Path, warnings: list[str], *, use_only_my_parts: bool = False) -> dict:
         record = {"id": secrets.token_hex(6), "name": name, "model": self.ref(chat_id, model_path),
-                  "warnings": warnings, "created_at": time.time()}
+                  "warnings": warnings, "created_at": time.time(), "use_only_my_parts": use_only_my_parts}
         with self._lock:
             self._append(chat_id, "models.jsonl", record)
         return record

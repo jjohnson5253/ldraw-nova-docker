@@ -29,6 +29,7 @@ from pydantic import BaseModel, Field
 from starlette.background import BackgroundTask
 
 import agent
+import collection
 import gallery
 import glb
 import llm_config
@@ -372,7 +373,8 @@ def chat_models(store: ChatStore, chat_id: str) -> dict[str, dict]:
     for ref in store.models(chat_id):
         path = store.resolve(chat_id, ref["model"])
         result[ref["id"]] = {**model_info(path), "id": ref["id"], "name": ref["name"],
-                             "warnings": ref.get("warnings", []), "created_at": ref["created_at"]}
+                             "warnings": ref.get("warnings", []), "created_at": ref["created_at"],
+                             "use_only_my_parts": ref.get("use_only_my_parts", False)}
     return result
 
 
@@ -383,7 +385,7 @@ def model_chat_index(store: ChatStore) -> dict[Path, list[dict]]:
         for ref in store.models(chat["id"]):
             chats = index.setdefault(store.resolve(chat["id"], ref["model"]), [])
             if not any(c["id"] == chat["id"] for c in chats):
-                chats.append({"id": chat["id"], "title": chat["title"]})
+                chats.append({"id": chat["id"], "title": chat["title"], "use_only_my_parts": ref.get("use_only_my_parts", False)})
     return index
 
 
@@ -519,7 +521,8 @@ async def models_list():
     models = gallery.collection(settings.GENERATED_DIR)
     gallery.ensure_artifacts(models)
     index = model_chat_index(get_store())
-    items = [{**model_info(path), "chats": index.get(path, [])} for path in models]
+    items = [{**model_info(path), "chats": [{"id": c["id"], "title": c["title"]} for c in index.get(path, [])],
+              "use_only_my_parts": any(c["use_only_my_parts"] for c in index.get(path, []))} for path in models]
     return {"models": items, "pending": sum(1 for i in items if _pending(i))}
 
 
@@ -568,6 +571,91 @@ def model_from_url(url: str) -> Optional[Path]:
                     and model.suffix.lower() in MODEL_SUFFIXES):
                 return model
     return None
+
+
+# --- owned parts -----------------------------------------------------------
+
+@app.get("/api/collection")
+def collection_get():
+    return {"sources": collection.sources(), "catalog_configured": bool(environment_config.snapshot().get("REBRICKABLE_API_KEY"))}
+
+
+@app.get("/api/collection/sets")
+def collection_search(search: str, page: int = 1):
+    try:
+        return collection.search(search, page)
+    except ValueError as exc:
+        raise HTTPException(400, str(exc)) from None
+
+
+@app.post("/api/collection/preview")
+def collection_preview(body: dict):
+    try:
+        return collection.preview(body)
+    except (ValueError, TypeError, KeyError) as exc:
+        raise HTTPException(400, str(exc) if isinstance(exc, ValueError) else "Invalid collection import") from None
+
+
+@app.post("/api/collection/sources")
+def collection_add(body: dict):
+    try:
+        return {"sources": collection.save(body)}
+    except (ValueError, TypeError, AttributeError) as exc:
+        raise HTTPException(400, str(exc) if isinstance(exc, ValueError) else "Invalid collection source") from None
+
+
+@app.put("/api/collection/sources/{source_id}")
+def collection_update(source_id: str, body: dict):
+    try:
+        return {"sources": collection.save(body, source_id)}
+    except (ValueError, TypeError, AttributeError) as exc:
+        raise HTTPException(400, str(exc) if isinstance(exc, ValueError) else "Invalid collection source") from None
+
+
+@app.delete("/api/collection/sources/{source_id}")
+def collection_remove(source_id: str):
+    try:
+        return {"sources": collection.save(None, source_id)}
+    except ValueError as exc:
+        raise HTTPException(400, str(exc)) from None
+
+
+@app.get("/api/collection/compare")
+async def collection_compare(url: str):
+    model = model_from_url(url) or _not_found("No such model")
+    try:
+        inventory = collection.snapshot()
+        report = await collection.compare(model, inventory)
+        return {**report, "has_collection": bool(collection.sources()),
+                "has_available_parts": any(p["part"] and p["colour"] is not None and p["quantity"] for p in inventory["parts"])}
+    except (ValueError, asyncio.TimeoutError) as exc:
+        raise HTTPException(400, str(exc) if isinstance(exc, ValueError) else "Parts comparison timed out") from None
+
+
+@app.post("/api/collection/adapt", status_code=202)
+async def collection_adapt(body: dict):
+    model = model_from_url(str(body.get("url", ""))) or _not_found("No such model")
+    if is_gallery(model):
+        raise HTTPException(400, "Choose a generated model to revise")
+    store = get_store()
+    chat_id = body.get("chat_id")
+    chat = store.get_chat(chat_id) if isinstance(chat_id, str) else None
+    if chat_id and not chat:
+        _not_found("No such chat")
+    if not any(p.get("part") and p.get("colour") is not None and p["quantity"] for p in collection.snapshot()["parts"]):
+        raise HTTPException(400, "Add available, mapped parts in My parts first")
+    created = chat is None
+    if created:
+        chat = store.create_chat(title=f"Use my parts · {model.stem}"[:60])
+    try:
+        options = {**(chat.get("options") or {}), "mode": "agent", "use_only_my_parts": True}
+        await agent.start_turn(store, chat["id"], f"Create a new revision of {model} using only my owned parts. Preserve its subject and keep the original model intact.",
+                               chat.get("llm_model_id"), options)
+    except (ValueError, RuntimeError) as exc:
+        if created:
+            store.delete_chat(chat["id"])
+        raise HTTPException(409 if isinstance(exc, RuntimeError) else 400, str(exc)) from None
+    return {"chat_id": chat["id"]}
 
 
 @app.get("/api/glb")

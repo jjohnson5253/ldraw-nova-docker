@@ -108,7 +108,7 @@ def work_listing(work_dir: Path) -> str:
     return "\n".join(lines) or "(empty)"
 
 
-def system_prompt(store: ChatStore, chat_id: str) -> str:
+def system_prompt(store: ChatStore, chat_id: str, inventory_path: str | None = None) -> str:
     work_dir = store.work_dir(chat_id)
     text = (settings.PROMPTS_DIR / "system.md").read_text()
     prompt = (text.replace("{work_dir}", str(work_dir))
@@ -122,6 +122,15 @@ def system_prompt(store: ChatStore, chat_id: str) -> str:
     if notes.is_file() and not notes.is_symlink():
         with notes.open(errors="replace") as handle:
             prompt += "\n\nCurrent hand-over notes (workspace data):\n" + handle.read(16000)
+    if inventory_path:
+        prompt += ("\n\nUse only my parts is selected. Read the owned inventory at " + inventory_path +
+                   ". It is a fixed snapshot for this turn, with LDraw part IDs, explicit LDraw colour codes, and quantities. "
+                   "Only rows with both part and colour mappings can be used. Sum stock across duplicate rows. "
+                   "Preserve the requested subject using your existing design and validation tools. "
+                   "Do not exceed any part/color quantity; copies across all steps and submodels count. "
+                   "Check ./ldraw-agent bom MODEL --inventory INVENTORY --report REPORT before publish_model. "
+                   "Publication independently checks the snapshot. If the inventory cannot represent the subject, "
+                   "explain the limitation instead of claiming success. Keep any existing published model intact.")
     return prompt
 
 
@@ -223,6 +232,12 @@ async def start_turn(store: ChatStore, chat_id: str, text: str, llm_model_id: Op
     if is_running(chat_id):
         raise RuntimeError("this chat is already running a turn")
 
+    inventory, inventory_path = None, None
+    if options.get("use_only_my_parts"):
+        import collection
+        inventory = collection.snapshot()
+        if not any(row.get("part") and row.get("colour") is not None and row["quantity"] > 0 for row in inventory["parts"]):
+            raise ValueError("Add available, mapped parts in My parts before choosing Use only my parts")
     chat = store.get_chat(chat_id)
     if chat["title"] == "New chat":
         title = " ".join(text.split())
@@ -230,14 +245,21 @@ async def start_turn(store: ChatStore, chat_id: str, text: str, llm_model_id: Op
     store.update_chat(chat_id, llm_model_id=entry["id"], options=options)
     content = ([{"type": "text", "text": text}, *[{"type": "image_url", "image_url": {"url": u}} for u in images]]
                if images else text)
-    from attachments import save_documents
+    from attachments import Document, save_documents
     attached = save_documents(store, chat_id, documents or [])
+    if inventory is not None:
+        owned = save_documents(store, chat_id, [Document("owned-parts.json", json.dumps(inventory).encode())])
+        attached.extend(owned)
+        inventory_path = str(store.resolve(chat_id, owned[0]["path"]))
     store.add_message(chat_id, {"role": "user", "content": content, **({"_documents": attached} if attached else {})})
 
     run = _runs.get(chat_id) or Run(chat_id)
     _runs[chat_id] = run
     run.draft, run.tools_running = "", {}
     run.options, run.approvals = options, {}
+    # Private authoritative data stays in this run; the agent receives a copy
+    # through the existing document attachment flow.
+    run.options = {**options, "_inventory": inventory, "_inventory_path": inventory_path}
     run.started_at = run.last_event_at = time.time()
     run.phase = "Preparing the build workspace"
     run.task = asyncio.create_task(_run_turn(store, run, entry))
@@ -283,7 +305,7 @@ async def _run_turn(store: ChatStore, run: Run, entry: dict) -> None:
     caps = llm_config.capabilities(entry)
     vision = caps["vision"] is True
     use_tools = caps["tools"] is not False and run.options.get("mode") != "chat"
-    ctx = ToolContext(chat_id=chat_id, store=store, emit=run.emit)
+    ctx = ToolContext(chat_id=chat_id, store=store, emit=run.emit, inventory=run.options.get("_inventory"))
 
     def save(message: dict) -> int:
         msg_id = store.add_message(chat_id, message)
@@ -293,11 +315,11 @@ async def _run_turn(store: ChatStore, run: Run, entry: dict) -> None:
     try:
         if entry.get("auth_mode") == "browser" and entry["litellm_params"]["model"].startswith("anthropic/"):
             from claude_agent import run_claude
-            await run_claude(store, run, entry, save, execute_tool, system_prompt(store, chat_id), use_tools)
+            await run_claude(store, run, entry, save, execute_tool, system_prompt(store, chat_id, run.options.get("_inventory_path")), use_tools)
             return
         params = await inference.params_for(entry, run.options)
         for _step in range(MAX_STEPS):
-            prompt = system_prompt(store, chat_id) + mode_prompt(run.options)
+            prompt = system_prompt(store, chat_id, run.options.get("_inventory_path")) + mode_prompt(run.options)
             messages = [{"role": "system", "content": prompt},
                         *llm_history(store.messages(chat_id), vision, lambda ref: store.resolve(chat_id, ref), entry["litellm_params"]["model"], mark_turns=True)]
             budget = run.options.get("context_tokens") or model_catalog.profile(entry["litellm_params"]["model"])["context_window"]

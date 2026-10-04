@@ -436,3 +436,23 @@ input:focus, select:focus, textarea:focus, button:focus-visible {
 .build-activity time { font-variant-numeric: tabular-nums; white-space: nowrap; }
 .live-tool-output { max-height: 180px; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; font-size: .75rem; padding: .65rem; }
 .progress-summary { margin: .4rem .7rem; font-size: .9rem; }
+
+/* Owned collection and model BOM comparisons. */
+.parts-page > .panel { padding: 20px; margin-bottom: 18px; }
+.parts-option { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+.parts-option input[type="checkbox"] { width: auto; }
+.composer-hint.parts-option { display: flex; gap: 12px; }
+.composer-hint.parts-option > span { margin-left: auto; }
+.parts-source-head { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; }
+.parts-source-head label { display: flex; align-items: center; gap: 8px; }
+.parts-source-head input[type="number"], .parts-table input { width: 90px; }
+.parts-search-results { margin: 12px 0; }
+.parts-search-results > .parts-source-head { padding: 10px 0; border-bottom: 1px solid var(--border); }
+.parts-table { overflow: auto; max-height: 320px; margin: 12px 0; }
+.parts-table table { width: 100%; text-align: left; border-collapse: collapse; font-size: .85rem; }
+.parts-table th, .parts-table td { padding: 8px; border-bottom: 1px solid var(--border); }
+.model-parts { border-top: 1px solid var(--border); padding-top: 10px; margin-top: 12px; font-size: .85rem; }
+.model-parts p { margin: 4px 0 10px; }
+.model-parts .head-actions { margin-top: 10px; flex-wrap: wrap; }
+.model-parts summary { cursor: pointer; }
+@media (max-width: 820px) { .composer-hint.parts-option > span { display: none; } }

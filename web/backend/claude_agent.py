@@ -23,7 +23,7 @@ from tools import ToolContext
 async def run_claude(store, run, entry, save, execute, prompt, use_tools):
     from agent import MAX_STEPS, available_tools, llm_history, mode_prompt
 
-    ctx = ToolContext(chat_id=run.chat_id, store=store, emit=run.emit)
+    ctx = ToolContext(chat_id=run.chat_id, store=store, emit=run.emit, inventory=run.options.get("_inventory"))
     sdk_tools = []
     for schema in available_tools(run.options) if use_tools else []:
         fn = schema["function"]
