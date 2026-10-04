@@ -35,7 +35,7 @@ def status() -> dict:
         if path().is_file():
             with closing(connect()) as db:
                 saved = json.loads(db.execute("SELECT value FROM metadata").fetchone()[0])
-        return {"ready": bool(saved), "state": "ready" if saved else "empty", **saved, **_progress}
+        return {"ready": bool(saved) and _progress.get("state") != "syncing", "state": "ready" if saved else "empty", **saved, **_progress}
 
 
 def _update(**values):
@@ -134,13 +134,14 @@ def shutdown():
 
 
 def search(value: str, page: int, number: str | None) -> dict:
-    if not path().is_file():
-        raise ValueError("The set catalog is not ready. Wait for the download, or retry it in My parts.")
     terms = value.strip().split()
     clause = "set_num = ?" if number else " AND ".join("(name LIKE ? ESCAPE '\\' OR theme LIKE ? ESCAPE '\\')" for _ in terms)
     params = [number] if number else ["%" + term.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_") + "%" for term in terms for _ in range(2)]
-    with _lock, closing(connect()) as db:
-        db.row_factory = sqlite3.Row
-        rows = db.execute("SELECT set_num, name, year, num_parts FROM sets WHERE " + clause +
-                          " ORDER BY (num_parts > 0) DESC, year DESC, set_num LIMIT 21 OFFSET ?", [*params, (page - 1) * 20]).fetchall()
+    with _lock:
+        if not path().is_file() or _progress.get("state") == "syncing":
+            raise ValueError("The set catalog is not ready. Wait for indexing to finish, or retry the download in My parts.")
+        with closing(connect()) as db:
+            db.row_factory = sqlite3.Row
+            rows = db.execute("SELECT set_num, name, year, num_parts FROM sets WHERE " + clause +
+                              " ORDER BY (num_parts > 0) DESC, year DESC, set_num LIMIT 21 OFFSET ?", [*params, (page - 1) * 20]).fetchall()
     return {"sets": [dict(row) for row in rows[:20]], "next": len(rows) > 20}

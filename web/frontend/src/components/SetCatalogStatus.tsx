@@ -14,12 +14,15 @@ export default function SetCatalogStatus({ onChange }: { onChange?: (status: Sta
     return () => { active = false; clearInterval(timer); };
   }, [onChange]);
   async function refresh() {
+    if (!status) return;
+    const pending: Status = { ...status, ready: false, state: "syncing", stage: "Starting catalog download", indexed: 0, error: undefined };
+    setStatus(pending); onChange?.(pending);
     try { const s = await api.setCatalog(true); setStatus(s); onChange?.(s); setError(""); }
-    catch (e) { setError((e as Error).message); }
+    catch (e) { setStatus(status); onChange?.(status); setError((e as Error).message); }
   }
   if (!status) return error ? <p className="warn-text" role="alert">{error}</p> : null;
   return <div className="small">
-    <p className="muted" role="status">{status.state === "syncing" ? <><span className="spinner" aria-hidden /> {status.stage}…{status.indexed ? ` ${status.indexed.toLocaleString()} sets indexed.` : ""}</>
+    <p className="muted" role="status">{status.state === "syncing" ? <><span className="spinner" aria-hidden /> {status.stage}…{status.indexed ? ` ${status.indexed.toLocaleString()} sets indexed.` : ""} Search is available when indexing finishes.</>
       : status.ready ? `${status.total_sets?.toLocaleString()} sets indexed locally · Updated ${new Date(status.updated_at!).toLocaleDateString()}. Search uses this downloaded catalog.`
       : "Saving your Rebrickable key downloads the complete set catalog for local search."}</p>
     {(error || status.error) && <p className="warn-text" role="alert">{error || status.error}</p>}

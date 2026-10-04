@@ -90,7 +90,7 @@ def test_failed_refresh_keeps_complete_previous_catalog_and_can_retry(index, mon
     assert set_catalog.status()["state"] == "ready"
 
 
-def test_background_sync_deduplicates_and_old_search_remains_usable(index, monkeypatch):
+def test_background_sync_deduplicates_and_blocks_search_until_finished(index, monkeypatch):
     set_catalog.ensure()
     set_catalog._worker.join(5)
     entered, release = threading.Event(), threading.Event()
@@ -105,10 +105,17 @@ def test_background_sync_deduplicates_and_old_search_remains_usable(index, monke
     worker = set_catalog._worker
     set_catalog.ensure(refresh=True)
     assert worker is set_catalog._worker
-    assert set_catalog.status()["state"] == "syncing" and collection.search("falcon")["sets"]
+    assert set_catalog.status()["state"] == "syncing" and not set_catalog.status()["ready"]
+    with pytest.raises(ValueError, match="Wait for indexing to finish"):
+        collection.search("falcon")
+    client = TestClient(main.app)
+    assert client.get("/api/collection/catalog").json()["ready"] is False
+    assert client.get("/api/collection/sets", params={"search": "falcon"}).status_code == 400
     release.set()
     worker.join(5)
     assert set_catalog.status()["state"] == "ready"
+    assert collection.search("falcon")["sets"]
+    assert client.get("/api/collection/sets", params={"search": "falcon"}).status_code == 200
 
 
 def test_catalog_api_reports_missing_initial_download_and_retries(index):

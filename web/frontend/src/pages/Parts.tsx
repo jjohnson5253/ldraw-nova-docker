@@ -25,6 +25,7 @@ export default function Parts() {
     finally { setBusy(false); }
   }
   async function search(value: string, next = 1) {
+    if (!catalog?.ready || busy) return;
     await work(async () => { const r = await api.searchSets(value, next); setResults(r); setSearchQuery(value); setPage(next); });
   }
   const count = (source: PartsSource) => source.parts.reduce((n, p) => n + p.quantity, 0) * source.copies;
@@ -42,7 +43,7 @@ export default function Parts() {
       {catalog && !configured && <p className="muted">Downloading the catalog and importing sets needs a Rebrickable API key. <Link to="/settings?environment=REBRICKABLE_API_KEY#environment-heading">Set up Rebrickable</Link> to enter your key. CSV with LDraw IDs works without a key.</p>}
       <SetCatalogStatus onChange={setCatalog} />
       <form className="head-actions" onSubmit={e => { e.preventDefault(); void search(query); }}>
-        <input aria-label="Set name, number, or URL" placeholder="Set name, number, or LEGO / BrickLink / Rebrickable URL" value={query} onChange={e => setQuery(e.target.value)} />
+        <input aria-label="Set name, number, or URL" placeholder="Set name, number, or LEGO / BrickLink / Rebrickable URL" disabled={busy || !catalog?.ready} value={query} onChange={e => setQuery(e.target.value)} />
         <button disabled={busy || !query.trim() || !catalog?.ready}>Search sets</button>
       </form>
       <label className="parts-option"><input type="checkbox" checked={spares} onChange={e => setSpares(e.target.checked)} disabled={busy} /> Include spare pieces when importing sets</label>
@@ -50,8 +51,8 @@ export default function Parts() {
         {results.sets.length === 0 && <p className="muted">No sets found.</p>}
         {results.sets.map(s => <div className="parts-source-head" key={s.set_num}><span><strong>{s.name}</strong><span className="muted small"> · {s.set_num} · {s.year} · {s.num_parts} pieces</span></span>
           <button disabled={busy || !configured} onClick={() => void work(async () => setPreview(await api.previewParts({ set: s.set_num, include_spares: spares })))}>Review parts</button></div>)}
-        <div className="head-actions">{page > 1 && <button disabled={busy} onClick={() => void search(searchQuery, page - 1)}>Previous</button>}
-          {results.next && <button disabled={busy} onClick={() => void search(searchQuery, page + 1)}>Next</button>}</div>
+        <div className="head-actions">{page > 1 && <button disabled={busy || !catalog?.ready} onClick={() => void search(searchQuery, page - 1)}>Previous</button>}
+          {results.next && <button disabled={busy || !catalog?.ready} onClick={() => void search(searchQuery, page + 1)}>Next</button>}</div>
       </div>}
       <h2>Upload a parts list</h2>
       <p className="muted small">CSV headers: <code>part,colour,quantity</code> using LDraw IDs, or <code>part_num,color_id,quantity</code> from Rebrickable (requires your API key).</p>
