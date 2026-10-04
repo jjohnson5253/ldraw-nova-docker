@@ -4,7 +4,11 @@ import { api, type EnvironmentVariable } from "../api";
 import { useApp } from "../context";
 
 type Row = { key: string; id?: string; name: string; value: string | null; has_value: boolean; fixed: boolean };
-const toRows = (variables: EnvironmentVariable[]): Row[] => variables.map(v => ({ ...v, key: v.id }));
+const rebrickableRow = (): Row => ({ key: "rebrickable-setup", name: "REBRICKABLE_API_KEY", value: null, has_value: false, fixed: false });
+const toRows = (variables: EnvironmentVariable[]): Row[] => {
+  const rows: Row[] = variables.map(v => ({ ...v, key: v.id }));
+  return rows.some(row => row.name === "REBRICKABLE_API_KEY") ? rows : [...rows, rebrickableRow()];
+};
 
 function ReplacementWarning({ row }: { row: Row }) {
   const [warning, setWarning] = useState("");
@@ -42,14 +46,11 @@ export default function EnvironmentSettings() {
     let active = true;
     api.environment().then(result => {
       if (active) {
-        const next = toRows(result.variables);
-        const addRebrickable = setupRebrickable && !next.some(row => row.name === "REBRICKABLE_API_KEY");
-        if (addRebrickable) next.push({ key: "rebrickable-setup", name: "REBRICKABLE_API_KEY", value: "", has_value: false, fixed: false });
-        setRows(next); setDirty(addRebrickable); setLoaded(true);
+        setRows(toRows(result.variables)); setLoaded(true);
       }
     }).catch(e => { if (active) setError(e.message); });
     return () => { active = false; };
-  }, [setupRebrickable]);
+  }, []);
 
   useEffect(() => {
     if (loaded && setupRebrickable) document.getElementById("environment-heading")?.scrollIntoView({ block: "start" });
@@ -63,7 +64,8 @@ export default function EnvironmentSettings() {
   async function save(event: FormEvent) {
     event.preventDefault(); setBusy(true); setError(""); setMessage("");
     try {
-      const result = await api.saveEnvironment(rows.map(({ id, name, value }) => ({ id, name: name.trim(), value })));
+      const result = await api.saveEnvironment(rows.filter(row => row.id || row.name !== "REBRICKABLE_API_KEY" || row.value !== null)
+        .map(({ id, name, value }) => ({ id, name: name.trim(), value })));
       setRows(toRows(result.variables)); setDirty(false);
       refreshLlms();
       setMessage("Environment variables saved. New requests use these values.");
@@ -84,14 +86,18 @@ export default function EnvironmentSettings() {
     <p className="muted small">Values are hidden for everyone. Leave a saved value untouched to keep it, or type a new value to replace it. An empty value saved here means “no value”.</p>
     <form onSubmit={save}>
       <div className="environment-rows">
-        {rows.map((row, index) => row.fixed ? <div className="required-environment" key={row.key}>
+        {rows.map((row, index) => row.fixed || row.name === "REBRICKABLE_API_KEY" ? <div className="required-environment" key={row.key}>
           <label className="required-environment-row"><span>{row.name}:</span>
-            <span className="environment-value"><input aria-label={`${row.name} value`} aria-describedby="typesafe-hint" type="password" autoComplete="new-password" maxLength={65536} disabled={busy}
+            <span className="environment-value"><input aria-label={`${row.name} value`} aria-describedby={row.fixed ? "typesafe-hint" : "rebrickable-hint"} type="password" autoComplete="new-password" maxLength={65536} disabled={busy}
               placeholder={row.has_value ? "Value saved · type to replace" : "Enter value"} value={row.value ?? ""}
               onChange={e => change(row.key, { value: e.target.value })} />
-              <ReplacementWarning row={row} /></span>
+              <ReplacementWarning row={row} />
+              {!row.fixed && row.id && <button type="button" className="danger-text" disabled={busy} onClick={() => {
+                setRows(current => current.map(r => r.key === row.key ? rebrickableRow() : r)); setDirty(true); setMessage(""); setError("");
+              }}>Remove</button>}</span>
           </label>
-          <small id="typesafe-hint" className="muted typesafe-hint"><em>This is required for finding required parts via Jev's semantic search</em></small>
+          {row.fixed ? <small id="typesafe-hint" className="muted typesafe-hint"><em>This is required for finding required parts via Jev's semantic search</em></small>
+            : <small id="rebrickable-hint" className="muted typesafe-hint">Used to search LEGO sets and import their parts from Rebrickable.</small>}
         </div> : <div className="environment-row" key={row.key}>
           <label>
             <span>Name</span>
