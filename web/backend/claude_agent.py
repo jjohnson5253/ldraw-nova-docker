@@ -1,4 +1,4 @@
-"""Claude browser-login adapter using the official SDK and app-owned MCP tools.
+"""Claude adapter using the official SDK and app-owned MCP tools.
 
 No native shell/file tools are exposed to the credential-bearing CLI process.
 App tools run through the same permission gate and unprivileged runner as API
@@ -18,6 +18,19 @@ import inference
 import llm_config
 import model_catalog
 from tools import ToolContext
+
+
+def sdk_environment(entry):
+    env = browser_auth.claude_env()
+    if entry.get('auth_mode') == 'api_key':
+        params = llm_config.resolve_params(entry)
+        key = params.get('api_key')
+        if not isinstance(key, str) or not key:
+            raise ValueError('The Claude SDK requires the configured Anthropic API key')
+        home = browser_auth.auth_dir('anthropic') / 'api'
+        home.mkdir(parents=True, exist_ok=True, mode=0o700)
+        env.update(HOME=str(home), CLAUDE_CONFIG_DIR=str(home), ANTHROPIC_API_KEY=key)
+    return env
 
 
 async def run_claude(store, run, entry, save, execute, prompt, use_tools):
@@ -86,7 +99,7 @@ async def run_claude(store, run, entry, save, execute, prompt, use_tools):
 
     options = ClaudeAgentOptions(
         model=model.split("/", 1)[1], system_prompt=messages[0]["content"],
-        cli_path=browser_auth.claude_binary(), env=browser_auth.claude_env(),
+        cli_path=browser_auth.claude_binary(), env=sdk_environment(entry),
         cwd=str(browser_auth.auth_dir("anthropic")), tools=[], setting_sources=[],
         strict_mcp_config=True,
         mcp_servers={"ldraw": create_sdk_mcp_server(name="ldraw", tools=sdk_tools)} if sdk_tools else {},

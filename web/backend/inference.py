@@ -1,12 +1,23 @@
 """LiteLLM request normalization and bounded history shared by chat and probes."""
 import copy
 import json
+import os
 
 import litellm
 
 import browser_auth
 import llm_config
 import model_catalog
+
+
+def uses_claude_sdk(entry: dict) -> bool:
+    params = entry['litellm_params']
+    if not params['model'].startswith('anthropic/'):
+        return False
+    return entry.get('auth_mode') == 'browser' or (
+        os.getenv('LDRAW_NOVA_CLAUDE_API_RUNTIME') == 'sdk'
+        and entry.get('auth_mode', 'api_key') == 'api_key'
+        and not params.get('api_base'))
 
 
 def preserve_openrouter_reasoning_chunks(stream, model: str) -> None:
