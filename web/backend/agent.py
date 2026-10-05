@@ -291,7 +291,7 @@ async def _run_turn(store: ChatStore, run: Run, entry: dict) -> None:
         return msg_id
 
     try:
-        if entry.get("auth_mode") == "browser" and entry["litellm_params"]["model"].startswith("anthropic/"):
+        if inference.uses_claude_sdk(entry):
             from claude_agent import run_claude
             await run_claude(store, run, entry, save, execute_tool, system_prompt(store, chat_id), use_tools)
             return
