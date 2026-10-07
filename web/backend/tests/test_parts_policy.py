@@ -14,7 +14,7 @@ import tools
 from parts_catalog import PartsUnavailable
 from store import ChatStore
 
-CATALOG = 'part_id,color_id,name,sku,unit_price,weight_kg,max_quantity\n3001,4,Brick 2 x 4,A,0.15,0.00219,4\n'
+CATALOG = 'part_id,color_id,name,sku,max_quantity\n3001,4,Brick 2 x 4,A,4\n'
 MODEL = b'1 4 0 0 0 1 0 0 0 1 0 0 0 1 3001.dat\n'
 
 
@@ -59,14 +59,39 @@ def test_defaults_freeze_per_chat_and_invalid_catalog_fails_closed(tmp_path, mon
     assert policy.load('chat').search(color_id=4)['total'] == 1
 
 
-def test_server_configuration_selects_any_inventory(monkeypatch):
-    monkeypatch.delenv('NOVA_PARTS_CATALOG')
-    assert parts_policy.default_catalog_path() == settings.TOOLKIT_DIR / 'ldraw_tools/data/brickwith_parts.csv'
-    monkeypatch.setenv('NOVA_PARTS_CATALOG', '/config/my-parts.csv')
-    assert parts_policy.default_catalog_path() == Path('/config/my-parts.csv')
-    monkeypatch.setenv('NOVA_PARTS_CATALOG', 'relative.csv')
+def test_server_configuration_selects_an_external_palette_only(monkeypatch):
+    monkeypatch.delenv('NOVA_PARTS_PALETTE', raising=False)
+    monkeypatch.delenv('NOVA_PARTS_CATALOG', raising=False)
+    assert parts_policy.default_palette_path() is None
+    monkeypatch.setenv('NOVA_PARTS_PALETTE', '/config/my-parts.csv')
+    assert parts_policy.default_palette_path() == Path('/config/my-parts.csv')
+    monkeypatch.setenv('NOVA_PARTS_PALETTE', 'relative.csv')
     with pytest.raises(ValueError):
-        parts_policy.default_catalog_path()
+        parts_policy.default_palette_path()
+    monkeypatch.delenv('NOVA_PARTS_PALETTE')
+    monkeypatch.setenv('NOVA_PARTS_CATALOG', '/config/legacy.csv')
+    assert parts_policy.default_palette_path() == Path('/config/legacy.csv')
+
+
+def test_no_palette_leaves_normal_nova_unrestricted(tmp_path):
+    policy = parts_policy.ChatPartsPolicy(tmp_path / 'config')
+    store = SimpleNamespace(work_dir=lambda chat: tmp_path / chat)
+    assert policy.prepare(store, 'chat') is False
+    assert policy.validate_model('chat', MODEL) is None
+
+
+def test_external_prices_are_not_stored_or_exposed(configured):
+    policy, store, chat_id = configured
+    source = 'part_id,color_id,unit_price,weight_kg,supplier_color\n3001,4,0.15,0.00219,010\n'
+    policy.configure(store, chat_id, source)
+    # Existing protected snapshots are normalized before the next turn too.
+    policy.path(chat_id).write_text(source)
+    policy.prepare(store, chat_id)
+    for path in (policy.path(chat_id), store.work_dir(chat_id) / 'allowed-parts.csv'):
+        assert 'unit_price' not in path.read_text()
+        assert '0.00219' not in path.read_text()
+        assert 'supplier_color' not in path.read_text()
+    assert 'unit_price' not in policy.load(chat_id).search()['parts'][0]
 
 
 def test_shared_agent_prompt_and_tools_include_policy(configured, monkeypatch):
@@ -94,7 +119,7 @@ def test_publication_gate_runs_before_toolkit_or_model_storage(configured, monke
     assert json.loads(check.content)['valid'] is False
     monkeypatch.setattr(parts_policy, 'expanded_inventory', lambda *args: {('3001', 4): 1})
     check = asyncio.run(tools.dispatch(ctx, 'check_model_parts', {'path': str(model)}))
-    assert json.loads(check.content)['parts_subtotal'] == '0.15'
+    assert json.loads(check.content) == {'valid': True, 'physical_parts': 1}
     search = asyncio.run(tools.dispatch(ctx, 'list_allowed_parts', {'query': '3001', 'limit': 1}))
     assert json.loads(search.content)['total'] == 1
     bad = asyncio.run(tools.dispatch(ctx, 'list_allowed_parts', {'limit': 1000}))
