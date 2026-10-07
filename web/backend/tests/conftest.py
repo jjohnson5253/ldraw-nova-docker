@@ -22,6 +22,7 @@ os.environ["LDRAW_NOVA_GALLERY_MODELS_DIR"] = str(_tmp / "models-gallery")     #
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))          # web/backend
 sys.path.insert(0, str(Path(__file__).resolve().parents[3]))          # repo root: leocad_render
 
+os.environ["NOVA_PARTS_CATALOG"] = "none"  # Existing tests exercise unrestricted workflows.
 import pytest  # noqa: E402
 
 

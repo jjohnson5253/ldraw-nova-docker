@@ -40,6 +40,7 @@ import render
 from attachments import validate_documents, validate_images
 import sandbox
 import settings
+import parts_policy
 from leocad_render import MODEL_SUFFIXES, bom_path_for, snapshot_path_for
 from paths import rel_to, safe_join
 from store import ChatStore, get_store
@@ -402,6 +403,23 @@ def chats_list():
 @app.post("/api/chats")
 def chats_create(body: NewChat):
     return get_store().create_chat(llm_model_id=body.llm_model_id)
+
+
+class PartsCatalogRequest(BaseModel):
+    csv: str = Field(min_length=1, max_length=16 * 1024 * 1024)
+
+
+@app.put("/api/chats/{chat_id}/parts-catalog")
+async def configure_parts_catalog(chat_id: str, body: PartsCatalogRequest):
+    store = get_store()
+    store.get_chat(chat_id) or _not_found("no such chat")
+    if agent.is_running(chat_id):
+        raise HTTPException(409, "Wait for the current generation to finish before changing its catalog")
+    try:
+        catalog = parts_policy.policy.configure(store, chat_id, body.csv)
+    except ValueError as exc:
+        raise HTTPException(400, str(exc)) from None
+    return {"parts_catalog_version": parts_policy.CATALOG_VERSION, "allowed_combinations": len(catalog.parts)}
 
 
 @app.get("/api/chats/{chat_id}")
