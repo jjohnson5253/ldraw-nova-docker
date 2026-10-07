@@ -11,7 +11,7 @@ from pathlib import Path
 
 import sandbox
 import settings
-from parts_catalog import PartsCatalog, PartsUnavailable, reject_custom_parts
+from parts_catalog import PartsCatalog, reject_custom_parts
 
 CATALOG_VERSION = 1
 CHAT_ID = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$")
@@ -30,15 +30,14 @@ def _load_catalog(path: str, modified: int) -> PartsCatalog:
     return PartsCatalog.load(Path(path))
 
 
-def default_catalog_path() -> Path | None:
-    value = os.environ.get("NOVA_PARTS_CATALOG", "brickwith")
-    if value == "none":
+def default_palette_path() -> Path | None:
+    # Keep the existing variable as a compatibility alias for external CSVs.
+    value = os.environ.get("NOVA_PARTS_PALETTE", os.environ.get("NOVA_PARTS_CATALOG", "")).strip()
+    if not value or value == "none":
         return None
-    if value == "brickwith":
-        return settings.TOOLKIT_DIR / "ldraw_tools/data/brickwith_parts.csv"
     path = Path(value)
     if not path.is_absolute():
-        raise ValueError("NOVA_PARTS_CATALOG must be brickwith, none, or an absolute CSV path")
+        raise ValueError("NOVA_PARTS_PALETTE must be none or an absolute CSV path")
     return path
 
 
@@ -60,6 +59,7 @@ class ChatPartsPolicy:
 
     def configure(self, store, chat_id: str, content: str) -> PartsCatalog:
         catalog = PartsCatalog.from_csv(content)
+        content = catalog.to_csv()
         path = self.path(chat_id)
         self.root.mkdir(mode=0o700, parents=True, exist_ok=True)
         with tempfile.NamedTemporaryFile(mode="w", encoding="utf-8", dir=self.root, delete=False) as temporary:
@@ -90,7 +90,12 @@ class ChatPartsPolicy:
                 return False
             self.configure(store, chat_id, self.default_catalog.read_text(encoding="utf-8"))
         else:
-            self._write_reference(store, chat_id, path.read_text(encoding="utf-8"))
+            content = path.read_text(encoding="utf-8")
+            if PartsCatalog.from_csv(content).to_csv() != content:
+                # Normalize older snapshots that included external metadata.
+                self.configure(store, chat_id, content)
+            else:
+                self._write_reference(store, chat_id, content)
         return True
 
     def validate_model(self, chat_id: str, content: bytes) -> dict | None:
@@ -99,13 +104,7 @@ class ChatPartsPolicy:
             return None
         inventory = expanded_inventory(content, settings.TOOLKIT_DIR, settings.LDRAW_DIR)
         catalog.validate(inventory)
-        try:
-            price, weight = catalog.quote(inventory)
-        except PartsUnavailable:
-            price, weight = None, None
-        return {"valid": True, "physical_parts": sum(inventory.values()),
-                "parts_subtotal": str(price) if price is not None else None,
-                "weight_kg": str(weight) if weight is not None else None, "currency": "USD"}
+        return {"valid": True, "physical_parts": sum(inventory.values())}
 
 
 def expanded_inventory(content: bytes, toolkit_dir: Path, ldraw_dir: Path) -> dict:
@@ -139,4 +138,4 @@ def expanded_inventory(content: bytes, toolkit_dir: Path, ldraw_dir: Path) -> di
         return {(part, color): quantity for part, color, quantity in json.loads(result.stdout)}
 
 
-policy = ChatPartsPolicy(settings.CONFIG_DIR, default_catalog_path())
+policy = ChatPartsPolicy(settings.CONFIG_DIR, default_palette_path())

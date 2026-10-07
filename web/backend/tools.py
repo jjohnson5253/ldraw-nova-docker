@@ -309,7 +309,7 @@ def _fn(name: str, description: str, properties: dict, required: list[str]) -> d
 
 TOOLS: dict[str, tuple[dict, Callable[..., Awaitable[ToolResult]]]] = {
     "list_allowed_parts": (_fn("list_allowed_parts", "Search the authoritative allowed part/color catalog. "
-        "Use before designing; IDs and colors are LDraw, unit prices are USD. Results are paginated.",
+        "Use before designing; IDs and colors are LDraw. Results are paginated.",
         {"query": {"type": "string"}, "color_id": {"type": "integer"},
          "offset": {"type": "integer"}, "limit": {"type": "integer"}}, []), t_list_allowed_parts),
     "check_model_parts": (_fn("check_model_parts", "Expand a candidate MPD and check all physical "
