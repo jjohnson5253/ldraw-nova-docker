@@ -5,7 +5,7 @@ export default function BuildVerification({ model, disabled, onVerify }: {
 }) {
   return <div className="build-verification">
     <p className="muted small">
-      {model?.validation_status === "passed" ? "Geometry checks passed. " : "Prompts create quick, unchecked previews. "}
+      {model?.validation_status === "passed" ? "Geometry checks passed. " : "Prompts create detailed previews with structural checks deferred. "}
       Verify Build runs the full checks and repairs using more AI credits.
     </p>
     <button type="button" className="primary" disabled={disabled || !model?.model_url}

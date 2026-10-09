@@ -72,9 +72,7 @@ def validate_options(entry: dict, options: dict | None) -> dict:
         raise ValueError("Unknown permission setting")
     spec = entry_profile(entry)
     if value["effort"] is None:
-        value["effort"] = (next((effort for effort in ("low", "minimal", "medium") if effort in spec["efforts"]),
-                                spec["default_effort"])
-                           if value["build_mode"] == "preview" else spec["default_effort"])
+        value["effort"] = spec["default_effort"]
     if value["context_tokens"] is None:
         value["context_tokens"] = spec["context_window"]
     if value["effort"] and value["effort"] not in spec["efforts"]:

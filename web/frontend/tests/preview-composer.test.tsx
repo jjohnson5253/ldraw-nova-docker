@@ -12,7 +12,7 @@ const app = {
     profile: { efforts: ["low", "medium", "high"], default_effort: "high", context_window: 1000, context_budgets: [1000] } }],
 } as AppState;
 
-test.each(["verify", undefined] as const)("an edit after reloading %s sends a quick preview with low default effort", async build_mode => {
+test.each(["verify", undefined] as const)("an edit after reloading %s sends an unchecked preview with normal default effort", async build_mode => {
   const send = vi.fn();
   render(<MemoryRouter><AppContext.Provider value={app}><Composer llmId="model" onLlmChange={vi.fn()}
     running={false} onSend={send} initialText="Make it red"
@@ -21,5 +21,5 @@ test.each(["verify", undefined] as const)("an edit after reloading %s sends a qu
   fireEvent.click(screen.getByRole("button", { name: "Send" }));
   await waitFor(() => expect(send).toHaveBeenCalledTimes(1));
   expect(send.mock.calls[0][0]).toBe("Make it red");
-  expect(send.mock.calls[0][1]).toMatchObject({ build_mode: "preview", effort: "low", permissions: "full" });
+  expect(send.mock.calls[0][1]).toMatchObject({ build_mode: "preview", effort: "high", permissions: "full" });
 });

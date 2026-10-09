@@ -49,7 +49,7 @@ test("verification analytics sends no prompt and cannot interrupt the build", ()
   expect(() => captureVerifyBuild(true)).not.toThrow();
 });
 
-test("preview effort prefers low reasoning while supporting models without effort settings", () => {
-  expect(previewEffort({ efforts: ["low", "medium", "high"], default_effort: "high" })).toBe("low");
+test("preview effort keeps normal reasoning while supporting models without effort settings", () => {
+  expect(previewEffort({ efforts: ["low", "medium", "high"], default_effort: "high" })).toBe("high");
   expect(previewEffort({ efforts: [], default_effort: null })).toBe(null);
 });
