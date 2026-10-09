@@ -137,3 +137,26 @@ def test_native_catalog_endpoint_preserves_chat_and_running_boundaries(configure
     monkeypatch.setattr(agent, 'is_running', lambda chat: True)
     assert client.put(endpoint, json={'csv': CATALOG}).status_code == 409
     assert client.put(endpoint, headers={'Origin': 'https://other.example'}, json={'csv': CATALOG}).status_code == 403
+
+
+def test_previews_defer_inventory_scan_but_verification_enforces_palette(configured, monkeypatch, tmp_path):
+    policy, store, chat_id = configured
+    monkeypatch.setattr(settings, 'GENERATED_DIR', tmp_path / 'generated')
+    scanned = []
+    def inventory(*args):
+        scanned.append(args)
+        return {('3001', 0): 1}
+    monkeypatch.setattr(parts_policy, 'expanded_inventory', inventory)
+    async def forbidden(*args, **kwargs):
+        pytest.fail('Preview must skip commands; verification must reject unavailable parts first')
+    monkeypatch.setattr(tools, 'run_command', forbidden)
+    ctx = tools.ToolContext(chat_id, store, lambda *_: None, build_mode='preview')
+    (ctx.work_dir / 'model.mpd').write_bytes(MODEL)
+    result = asyncio.run(tools.dispatch(ctx, 'publish_model', {'path': 'model.mpd'}))
+    assert result.models[0]['validation_status'] == 'preview' and scanned == []
+    prompt = agent.system_prompt(store, chat_id, {'build_mode': 'preview'})
+    assert 'PARTS POLICY FOR PREVIEWS' in prompt and 'Defer check_model_parts' in prompt
+    assert policy.load(chat_id).search('3001', 4)['total'] == 1
+    ctx.build_mode = 'verify'
+    checked = asyncio.run(tools.dispatch(ctx, 'publish_model', {'path': 'model.mpd'}))
+    assert len(scanned) == 1 and not checked.models and 'blocked publication' in checked.content

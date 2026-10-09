@@ -43,6 +43,7 @@ class ToolContext:
     chat_id: str
     store: ChatStore
     emit: Callable[[str, dict], None]
+    build_mode: str = "verify"
 
     @property
     def work_dir(self) -> Path:
@@ -164,6 +165,25 @@ async def t_publish_model(ctx: ToolContext, path: str, name: str | None = None) 
         raise ToolError("Publish a self-contained .mpd or .ldr from this chat's output folder")
     if source.stat().st_size > 32 * 1024 * 1024:
         raise ToolError("Model exceeds the 32 MB publication limit")
+    if ctx.build_mode == "preview":
+        source_bytes = source.read_bytes()
+        slug = _slug(name or source.stem)
+        settings.GENERATED_DIR.mkdir(parents=True, exist_ok=True)
+        target = settings.GENERATED_DIR / f"{slug}-v{_next_version(slug)}.mpd"
+        target.write_bytes(source_bytes)
+        warnings = ["Unchecked preview. Choose Verify Build for validation and visual review."]
+        ref = ctx.store.add_model(ctx.chat_id, name or source.stem, target, warnings, validation_status="preview")
+        ctx.emit("model", {"id": ref["id"], "name": ref["name"]})
+        model_url = "/files/generated/" + quote(target.name)
+        return ToolResult(json.dumps({
+            "model_url": model_url, "source": artifact_url(ctx, source),
+            "card_url": f"/chat/{ctx.chat_id}#model-{ref['id']}",
+            "viewer_url": "/viewer/viewer.html?model=" + quote(model_url, safe=""),
+            "download_url": model_url + "?download=1",
+            "sha256": hashlib.sha256(source_bytes).hexdigest(),
+            "validation_status": "preview", "checks_passed": False, "warnings": warnings,
+            "note": "Preview ready. Stop this turn; defer all validation and review to Verify Build.",
+        }), models=[ref])
     import uuid
     review = ctx.work_dir / "publication" / uuid.uuid4().hex[:12]
     review.mkdir(parents=True)
@@ -206,7 +226,8 @@ async def t_publish_model(ctx: ToolContext, path: str, name: str | None = None) 
         shutil.copyfile(bom, bom_path_for(target))
     else:
         warnings.append("Preview/BOM rendering failed; the model can still be opened in 3D.")
-    ref = ctx.store.add_model(ctx.chat_id, name or source.stem, target, warnings)
+    ref = ctx.store.add_model(ctx.chat_id, name or source.stem, target, warnings,
+                              validation_status="passed" if validation.exit_code == 0 else "failed")
     ctx.emit("model", {"id": ref["id"], "name": ref["name"]})
     model_url = "/files/generated/" + quote(target.name)
     result = {"model_url": model_url, "source": artifact_url(ctx, source),

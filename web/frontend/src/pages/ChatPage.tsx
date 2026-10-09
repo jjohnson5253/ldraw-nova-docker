@@ -8,6 +8,8 @@ import ModelCard from "../components/ModelCard";
 import { useApp } from "../context";
 import { placeChatModels } from "../chatModels";
 import DocumentIcon from "../components/DocumentIcon";
+import BuildVerification from "../components/BuildVerification";
+import { captureVerifyBuild } from "../analytics";
 
 type RunningTool = { id: string; name: string; arguments: string; output?: string; started_at?: number };
 type Activity = { started_at: number; last_event_at: number; phase: string };
@@ -33,6 +35,7 @@ export default function ChatPage() {
   const [activity, setActivity] = useState<Activity | null>(null);
   const [connected, setConnected] = useState(true);
   const [now, setNow] = useState(Date.now());
+  const [verifying, setVerifying] = useState(false);
   const draftRef = useRef("");
   const sourceRef = useRef<EventSource | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
@@ -176,7 +179,7 @@ export default function ChatPage() {
     setError(null);
     stickToBottom.current = true;
     try {
-      await api.send(id, value, llmId, options, images, documents);
+      await api.send(id, value, llmId, { ...options, build_mode: "preview" }, images, documents);
     } catch (e) {
       setError((e as Error).message);
       throw e;
@@ -184,6 +187,20 @@ export default function ChatPage() {
     await reload();
     subscribe();
     refreshChats();
+  }
+
+  async function verifyBuild() {
+    if (running || verifying) return;
+    setVerifying(true);
+    setError(null);
+    captureVerifyBuild(!!detail && Object.keys(detail.models).length > 0);
+    try {
+      await api.verifyBuild(id, llmId);
+      subscribe();
+      await reload();
+      refreshChats();
+    } catch (e) { setError((e as Error).message); }
+    finally { setVerifying(false); }
   }
 
   if (notFound) return <div className="page"><p className="muted">This chat doesn't exist (any more).</p></div>;
@@ -268,6 +285,8 @@ export default function ChatPage() {
         <div ref={bottomRef} />
       </div>
       <div className="composer-wrap">
+        <BuildVerification model={publishedModels.at(-1)} disabled={running || verifying || !llmId}
+          onVerify={verifyBuild} />
         {running && <div className="build-activity" role="status" aria-live="polite">
           <span className="spinner" aria-hidden />
           <span>{!connected ? "Reconnecting to live updates… Your build continues on the server." :
@@ -287,7 +306,7 @@ export default function ChatPage() {
           onLlmChange={setLlmId}
           onSend={send}
           onStop={() => api.cancel(id)}
-          running={running}
+          running={running || verifying}
         />
       </div>
     </div>

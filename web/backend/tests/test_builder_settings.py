@@ -20,7 +20,7 @@ def test_visible_effort_matches_the_effective_request():
     ]:
         entry = {"litellm_params": {"model": model, "api_key": "test"}}
         assert llm_config.public(entry)["profile"]["default_effort"] == default
-        options = model_catalog.validate_options(entry, {})
+        options = model_catalog.validate_options(entry, {"build_mode": "verify"})
         assert options["effort"] == default
         params = asyncio.run(inference.params_for(entry, options))
         if model.startswith("openrouter/"):
@@ -31,7 +31,7 @@ def test_visible_effort_matches_the_effective_request():
             assert params["reasoning_effort"] == default
     entry = {"litellm_params": {"model": "openrouter/openai/gpt-6-sol", "extra_body": {"reasoning": {"effort": "max"}}}}
     assert llm_config.public(entry)["profile"]["default_effort"] == "max"
-    assert model_catalog.validate_options(entry, {})["effort"] == "max"
+    assert model_catalog.validate_options(entry, {"build_mode": "verify"})["effort"] == "max"
 
 
 def test_context_choices_are_model_windows_and_chat_mode_is_rejected(monkeypatch):

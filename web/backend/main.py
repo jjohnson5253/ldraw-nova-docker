@@ -373,7 +373,8 @@ def chat_models(store: ChatStore, chat_id: str) -> dict[str, dict]:
     for ref in store.models(chat_id):
         path = store.resolve(chat_id, ref["model"])
         result[ref["id"]] = {**model_info(path), "id": ref["id"], "name": ref["name"],
-                             "warnings": ref.get("warnings", []), "created_at": ref["created_at"]}
+                             "warnings": ref.get("warnings", []), "created_at": ref["created_at"],
+                             "validation_status": ref.get("validation_status")}
     return result
 
 
@@ -483,6 +484,42 @@ async def chats_send(chat_id: str, body: NewMessage):
 
 class ApprovalDecision(BaseModel):
     approved: bool
+
+
+class VerifyBuild(BaseModel):
+    llm_model_id: str | None = None
+
+
+@app.post("/api/chats/{chat_id}/verify", status_code=202)
+async def chats_verify(chat_id: str, body: VerifyBuild):
+    store = get_store()
+    chat = store.get_chat(chat_id) or _not_found("no such chat")
+    if agent.is_running(chat_id):
+        raise HTTPException(409, "this chat is already running a turn")
+    models = store.models(chat_id)
+    if not models:
+        raise HTTPException(400, "Create a preview before verifying the build")
+    latest = models[-1]
+    path = store.resolve(chat_id, latest["model"])
+    if not path.is_file() or not path.resolve().is_relative_to(settings.GENERATED_DIR.resolve()):
+        raise HTTPException(400, "The latest model is no longer available; create another preview")
+    # Verify the immutable published revision, rather than an agent's possibly
+    # changed working file. start_turn owns admission and retains permissions.
+    options = {**(chat.get("options") or {}), "mode": "agent", "build_mode": "verify"}
+    options.pop("effort", None)  # Restore normal model effort for the full review.
+    options.pop("context_tokens", None)  # A newly selected provider may have a different window.
+    text = (f"Verify Build: fully validate the latest preview at {path}. "
+            "Use the normal complete builder workflow: geometry and connection checks, construction "
+            "steps, renders and visual review, parts/BOM comparison, and repair/recheck any problems. "
+            "Preserve the user's chosen design. Start from the published preview bytes, using the existing "
+            "generator where appropriate. Publish the reviewed result and summarize checks and remaining limitations.")
+    try:
+        await agent.start_turn(store, chat_id, text, body.llm_model_id or chat.get("llm_model_id"), options)
+    except RuntimeError as exc:
+        raise HTTPException(409, str(exc)) from None
+    except ValueError as exc:
+        raise HTTPException(400, str(exc)) from None
+    return {"started": True}
 
 
 @app.post("/api/chats/{chat_id}/approvals/{approval_id}")

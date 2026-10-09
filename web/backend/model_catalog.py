@@ -62,14 +62,19 @@ def entry_profile(entry: dict) -> dict:
 
 
 def validate_options(entry: dict, options: dict | None) -> dict:
-    value = {"mode": "agent", "permissions": "ask", "effort": None, "context_tokens": None, **(options or {})}
+    value = {"mode": "agent", "permissions": "ask", "effort": None, "context_tokens": None,
+             "build_mode": "preview", **(options or {})}
+    if value["build_mode"] not in ("preview", "verify"):
+        raise ValueError("Unknown build mode")
     if value["mode"] not in ("plan", "agent"):
         raise ValueError("Unknown mode")
     if value["permissions"] not in ("ask", "full", "read_only"):
         raise ValueError("Unknown permission setting")
     spec = entry_profile(entry)
     if value["effort"] is None:
-        value["effort"] = spec["default_effort"]
+        value["effort"] = (next((effort for effort in ("low", "minimal", "medium") if effort in spec["efforts"]),
+                                spec["default_effort"])
+                           if value["build_mode"] == "preview" else spec["default_effort"])
     if value["context_tokens"] is None:
         value["context_tokens"] = spec["context_window"]
     if value["effort"] and value["effort"] not in spec["efforts"]:

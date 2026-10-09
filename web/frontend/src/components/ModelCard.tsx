@@ -5,7 +5,7 @@ import { useApp } from "../context";
 import InfoModal from "./InfoModal";
 
 type Props = {
-  model: ModelFile & { warnings?: string[]; created_at?: number };
+  model: ModelFile & { warnings?: string[]; created_at?: number; validation_status?: string | null };
   showChats?: boolean;
   onDelete?: () => Promise<void>;
 };
@@ -76,6 +76,9 @@ export default function ModelCard({ model, showChats = false, onDelete }: Props)
       <div className="model-meta">
         {deleteError && <p className="warn-text small" role="alert">{deleteError}</p>}
         <div className="model-title">
+          {model.validation_status === "preview" && <span className="badge warn">Unchecked preview</span>}
+          {model.validation_status === "passed" && <span className="badge">Geometry checked</span>}
+          {model.validation_status === "failed" && <span className="badge warn">Needs repair</span>}
           <span className="model-file">
             <strong className="ellipsis" title={model.file}>{model.file}</strong>
             {model.parts != null ? (

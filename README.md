@@ -1,5 +1,9 @@
 # ldraw-nova-docker
 
+Agent prompts and edits now produce quick, unchecked previews. Use **Verify Build**
+in the chat when ready for the full validation and repair workflow, which uses
+more AI credits. See [Quick previews and verification](docs/preview-and-verification.md).
+
 Set `LDRAW_NOVA_CLAUDE_API_RUNTIME=sdk` to use the Claude Agent SDK for direct
 Anthropic API-key models, sharing the same agent loop as browser-login models.
 The selected model, reasoning effort, Nova tools and permissions are preserved.
