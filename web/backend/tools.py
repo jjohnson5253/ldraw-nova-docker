@@ -133,7 +133,19 @@ async def t_run_shell(ctx: ToolContext, command: str, timeout: int = 60) -> Tool
 async def t_run_toolkit(ctx: ToolContext, arguments: list[str], timeout: int = 300) -> ToolResult:
     if not arguments or not all(isinstance(a, str) and "\0" not in a for a in arguments):
         raise ToolError("arguments must be a nonempty array of CLI argument strings")
-    return await _run_and_collect(ctx, ["./ldraw-agent", *arguments], timeout)
+    argv = ["./ldraw-agent", *arguments]
+    position = 0
+    while position < len(arguments):
+        option = arguments[position]
+        if option in {"--library", "--shadow"}:
+            position += 2
+        elif option == "--no-shadow" or option.startswith(("--library=", "--shadow=")):
+            position += 1
+        else:
+            break
+    if ctx.build_mode == "preview" and arguments[position:position + 1] == ["build"]:
+        argv = ["python3", str(Path(__file__).with_name("preview_build.py")), *arguments]
+    return await _run_and_collect(ctx, argv, timeout)
 
 
 async def t_report_progress(ctx: ToolContext, summary: str) -> ToolResult:
