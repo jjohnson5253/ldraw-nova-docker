@@ -1,4 +1,5 @@
 import asyncio
+import base64
 import json
 from pathlib import Path
 
@@ -27,21 +28,25 @@ def store(tmp_path):
 def test_build_mode_default_validation_and_limits():
     entry = {"litellm_params": {"model": "openai/gpt-6-luna"}}
     assert model_catalog.validate_options(entry, {})["build_mode"] == "preview"
-    assert model_catalog.validate_options(entry, {})["effort"] == "low"
+    assert model_catalog.validate_options(entry, {})["effort"] == model_catalog.entry_profile(entry)["default_effort"]
+    assert model_catalog.validate_options(entry, {"effort": "low"})["effort"] == "low"
     assert model_catalog.validate_options(entry, {"build_mode": "verify"})["build_mode"] == "verify"
     with pytest.raises(ValueError, match="build mode"):
         model_catalog.validate_options(entry, {"build_mode": "unchecked"})
-    assert agent.step_limit({"build_mode": "preview"}) < agent.step_limit({"build_mode": "verify"}) == agent.MAX_STEPS
+    assert agent.step_limit({"build_mode": "preview"}) == agent.step_limit({"build_mode": "verify"}) == agent.MAX_STEPS
 
 
-def test_preview_prompt_avoids_loading_full_workflow(monkeypatch, store):
+def test_preview_prompt_keeps_design_foundations_and_overrides_only_review(monkeypatch, store):
     chat = store.create_chat()
-    def forbidden():
-        pytest.fail("Preview should not load the full validation workflow")
-    monkeypatch.setattr(toolkit, "instructions", forbidden)
-    monkeypatch.setattr(toolkit, "builder_guides", forbidden)
+    monkeypatch.setattr(toolkit, "instructions", lambda: "Full construction foundations")
+    monkeypatch.setattr(toolkit, "builder_guides", lambda: "Visual design and category reference foundations")
+    (store.work_dir(chat["id"]) / "NOTES.md").write_text("Retain the detailed roof and interior")
     prompt = agent.system_prompt(store, chat["id"], {"build_mode": "preview"})
-    assert "QUICK PREVIEW" in prompt and "Verify Build" in prompt
+    for foundation in ("Full construction foundations", "Visual design and category reference foundations",
+                       "Retain the detailed roof and interior"):
+        assert foundation in prompt
+        assert prompt.index(foundation) < prompt.index("PREVIEW WORKFLOW OVERRIDE")
+    assert "view_image BEFORE publication" in prompt and "Verify Build" in prompt
     assert "{work_dir}" not in prompt
     schemas = {s["function"]["name"]: s["function"]["description"] for s in agent.available_tools({})}
     assert "unchecked" in schemas["publish_model"]
@@ -110,6 +115,46 @@ def test_each_prompt_returns_to_preview_and_stops_after_publication(monkeypatch,
     assert "Preview ready" in store.messages(chat["id"])[-1]["content"]
 
 
+def test_preview_can_render_review_and_refine_before_publishing(monkeypatch, store, tmp_path):
+    import llm_config
+    monkeypatch.setattr(settings, "GENERATED_DIR", tmp_path / "generated")
+    entry = llm_config.create({"litellm_params": {"model": "openai/gpt-6-luna", "api_key": "test"},
+                              "capabilities": {"tools": True, "vision": True}})
+    chat = store.create_chat()
+    image = store.work_dir(chat["id"]) / "visual-review.png"
+    image.write_bytes(base64.b64decode("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII="))
+    refined = MODEL + b"1 4 400 0 0 1 0 0 0 1 0 0 0 1 3001.dat\n"
+    (store.work_dir(chat["id"]) / "model.mpd").write_bytes(MODEL)
+    fake, calls = scripted([
+        tool_call_chunks("render", "run_toolkit", {"arguments": ["render", "output/model.mpd", "--outdir", "output/review"]}),
+        tool_call_chunks("review", "view_image", {"path": "output/visual-review.png"}),
+        tool_call_chunks("refine", "write_file", {"path": "output/model.mpd", "content": refined.decode()}),
+        tool_call_chunks("publish", "publish_model", {"path": "output/model.mpd"}),
+    ])
+    monkeypatch.setattr(agent.litellm, "acompletion", fake)
+    original_dispatch = tools.dispatch
+    async def dispatch(ctx, name, arguments):
+        arguments = json.loads(arguments) if isinstance(arguments, str) else arguments
+        if name == "run_toolkit":
+            assert arguments["arguments"] == ["render", "output/model.mpd", "--outdir", "output/review"]
+            return tools.ToolResult("Visual render ready", images=[image])
+        return await original_dispatch(ctx, name, arguments)
+    monkeypatch.setattr(agent, "dispatch", dispatch)
+    async def forbidden(*args, **kwargs):
+        pytest.fail("Publication must not validate or render the reviewed preview again")
+    monkeypatch.setattr(tools, "run_command", forbidden)
+    async def run():
+        await agent.start_turn(store, chat["id"], "Build the complete design", entry["id"], {"permissions": "full"})
+        await agent._runs[chat["id"]].task
+    asyncio.run(run())
+    [published] = store.models(chat["id"])
+    assert store.resolve(chat["id"], published["model"]).read_bytes() == refined
+    assert published["validation_status"] == "preview"
+    assert len(calls) == 4
+    assert calls[0]["reasoning_effort"] == model_catalog.entry_profile(entry)["default_effort"]
+    assert any(message.get("_images_for_llm") for message in store.messages(chat["id"]))
+
+
 def test_verify_endpoint_uses_latest_published_revision_and_retains_permissions(monkeypatch, store, tmp_path):
     monkeypatch.setattr(main, "get_store", lambda: store)
     monkeypatch.setattr(settings, "GENERATED_DIR", tmp_path / "generated")
@@ -157,7 +202,7 @@ def test_verify_endpoint_rejects_missing_busy_deleted_and_foreign_model(monkeypa
     assert client.post(url, json={}).status_code == 400
 
 
-def test_claude_preview_uses_short_limit_and_denies_post_publication_tools(monkeypatch, store):
+def test_claude_preview_uses_normal_limit_and_denies_post_publication_tools(monkeypatch, store):
     import claude_agent
     from claude_agent_sdk import AssistantMessage, TextBlock
     recorded = {}
@@ -188,7 +233,7 @@ def test_claude_preview_uses_short_limit_and_denies_post_publication_tools(monke
     saved = []
     asyncio.run(claude_agent.run_claude(store, run, {"litellm_params": {"model": "anthropic/claude-opus-5-5"}},
                                        saved.append, execute, "QUICK PREVIEW", True))
-    assert recorded["options"].max_turns == agent.PREVIEW_MAX_STEPS
+    assert recorded["options"].max_turns == agent.MAX_STEPS
     assert calls == [("publish_model", "preview")]
     assert recorded["interrupted"] and "Preview ready" in saved[-1]["content"]
     assert recorded["drained"] is True

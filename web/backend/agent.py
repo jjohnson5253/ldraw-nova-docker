@@ -34,7 +34,6 @@ litellm.drop_params = False           # unsupported settings must fail visibly
 litellm.suppress_debug_info = True
 
 MAX_STEPS = 150
-PREVIEW_MAX_STEPS = 24
 KEEP_IMAGE_MESSAGES = 2               # only the newest renders are re-sent to vision models
 WORK_LISTING_LIMIT = 60               # files of the work folder listed in the system prompt
 
@@ -112,21 +111,25 @@ def work_listing(work_dir: Path) -> str:
 
 def system_prompt(store: ChatStore, chat_id: str, options: dict | None = None) -> str:
     work_dir = store.work_dir(chat_id)
-    template = "preview.md" if options and options.get("build_mode") == "preview" else "system.md"
+    preview = bool(options and options.get("build_mode") == "preview")
+    template = "system.md"
     text = (settings.PROMPTS_DIR / template).read_text()
     prompt = (text.replace("{work_dir}", str(work_dir))
                 .replace("{work_listing}", work_listing(work_dir))
                 .replace("{generated_dir}", str(settings.GENERATED_DIR))
                 .replace("{ldraw_dir}", str(settings.LDRAW_DIR))
                 .replace("{artifact_base}", f"/api/chats/{chat_id}/artifacts"))
-    if template == "system.md":
-        prompt = prompt.replace("{toolkit_instructions}", toolkit.instructions()).replace("{toolkit_guides}", toolkit.builder_guides())
+    prompt = prompt.replace("{toolkit_instructions}", toolkit.instructions()).replace("{toolkit_guides}", toolkit.builder_guides())
     notes = work_dir / "NOTES.md"
     if notes.is_file() and not notes.is_symlink():
         with notes.open(errors="replace") as handle:
             prompt += "\n\nCurrent hand-over notes (workspace data):\n" + handle.read(16000)
     if parts_policy.policy.prepare(store, chat_id):
-        prompt += parts_policy.PREVIEW_POLICY_PROMPT if template == "preview.md" else parts_policy.POLICY_PROMPT
+        prompt += parts_policy.PREVIEW_POLICY_PROMPT if preview else parts_policy.POLICY_PROMPT
+    if preview:
+        # Keep the normal design foundations; override only checks/delivery
+        # after every reference and continuation note has been loaded.
+        prompt += "\n\n" + (settings.PROMPTS_DIR / "preview.md").read_text()
     return prompt
 
 
@@ -403,7 +406,7 @@ READ_TOOLS = {"list_allowed_parts", "check_model_parts", "list_files", "read_fil
 
 
 def step_limit(options: dict) -> int:
-    return PREVIEW_MAX_STEPS if options.get("build_mode", "preview") == "preview" else MAX_STEPS
+    return MAX_STEPS
 
 
 def preview_message(chat_id: str, model: dict) -> dict:
@@ -435,8 +438,9 @@ def available_tools(options: dict) -> list[dict]:
             elif schema["function"]["name"] == "run_toolkit":
                 schema["function"]["description"] = (
                     "Run ./ldraw-agent with a CLI argument array in the prepared toolkit workspace. "
-                    "Read only needed spec references, build and embed assets. Defer validation, rendering "
-                    "and review to Verify Build. Write under output/.")
+                    "Use design references, discover parts, and render for visual review. Rendering does not check connectivity. "
+                    "Defer geometry/contact validation, connection repair, BOM comparison and instruction checks "
+                    "to Verify Build. Write under output/.")
         return schemas
     return TOOL_SCHEMAS
 

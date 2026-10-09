@@ -36,3 +36,12 @@ jobs:
           -e NOVA_SERVICE_TOKEN=smoke-local-only
           -e EXPECTED_WEB_REVISION=${{ github.sha }}
           nova-railway:check /tmp/runtime-smoke.py
+      - name: Check preview quality and deferred validation
+        run: >-
+          docker run --rm --entrypoint sh
+          -v "$PWD/web/backend/tests:/app/web/backend/tests:ro"
+          -v "$PWD/web/backend/requirements-dev.txt:/tmp/requirements-dev.txt:ro"
+          nova-railway:check -c
+          'pip install --quiet --break-system-packages -r /tmp/requirements-dev.txt &&
+          cd /app/web/backend && python3 -m pytest
+          tests/test_build_modes.py tests/test_builder_settings.py tests/test_parts_policy.py -q'
