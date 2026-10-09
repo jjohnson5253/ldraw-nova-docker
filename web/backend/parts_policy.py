@@ -23,6 +23,12 @@ POLICY_PROMPT = (
     "Check candidates with check_model_parts and repair every violation. publish_model "
     "will refuse unavailable combinations. This policy also applies to all edits, including old models."
 )
+PREVIEW_POLICY_PROMPT = (
+    "\n\nPARTS POLICY FOR PREVIEWS: Choose only exact LDraw part/color pairs from "
+    "list_allowed_parts or output/allowed-parts.csv; honor max_quantity. No custom "
+    "geometry or colors. Defer check_model_parts and the complete inventory scan "
+    "to Verify Build. This preview has no availability or quantity guarantee."
+)
 
 
 @lru_cache(maxsize=16)

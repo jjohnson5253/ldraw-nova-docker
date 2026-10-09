@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { useApp } from "../context";
 import type { TurnOptions, DocumentUpload } from "../api";
 import ModelPicker from "./ModelPicker";
-import { rememberModel, tokenLabel } from "../modelChoices";
+import { previewEffort, rememberModel, tokenLabel } from "../modelChoices";
 import DocumentIcon from "./DocumentIcon";
 
 const DOCUMENT_TYPES = ".pdf,.txt,.md,.csv,.json,.yaml,.yml,.xml,.html,.rtf,.docx,.xlsx,.pptx,.mpd,.ldr,.dat";
@@ -25,7 +25,8 @@ export default function Composer({ llmId, onLlmChange, onSend, onStop, running, 
   const upload = useRef<HTMLInputElement>(null);
   const documentUpload = useRef<HTMLInputElement>(null);
   const [selection, setSelection] = useState<{ modelId: string | null; options: TurnOptions }>({ modelId: llmId,
-    options: { ...initialOptions, mode: initialOptions && initialOptions.mode !== "agent" ? "plan" : "agent", permissions: initialOptions?.permissions ?? "ask" } });
+    options: { ...initialOptions, effort: initialOptions?.build_mode === "preview" ? initialOptions.effort : null,
+      mode: initialOptions && initialOptions.mode !== "agent" ? "plan" : "agent", permissions: initialOptions?.permissions ?? "ask" } });
   const [images, setImages] = useState<{ name: string; url: string; size: number }[]>([]);
   const [documents, setDocuments] = useState<(DocumentUpload & { size: number })[]>([]);
   const [error, setError] = useState("");
@@ -36,14 +37,14 @@ export default function Composer({ llmId, onLlmChange, onSend, onStop, running, 
   // previous provider's effort/context while waiting for an effect to run.
   const sameModel = selection.modelId === llmId;
   const saved = selection.options;
-  const options: TurnOptions = { ...saved,
-    effort: sameModel && saved.effort && profile?.efforts.includes(saved.effort) ? saved.effort : profile?.default_effort ?? null,
+  const options: TurnOptions = { ...saved, build_mode: "preview",
+    effort: sameModel && saved.effort && profile?.efforts.includes(saved.effort) ? saved.effort : previewEffort(profile),
     context_tokens: sameModel && saved.context_tokens && profile?.context_budgets.includes(saved.context_tokens) ? saved.context_tokens : profile?.context_window ?? null,
   };
   const setOptions = (next: TurnOptions) => setSelection({ modelId: llmId, options: next });
   function chooseModel(id: string) {
     const next = llms.find(m => m.id === id)?.profile;
-    setSelection({ modelId: id, options: { ...options, effort: next?.default_effort ?? null, context_tokens: next?.context_window ?? null } });
+    setSelection({ modelId: id, options: { ...options, effort: previewEffort(next), context_tokens: next?.context_window ?? null } });
     onLlmChange(id);
   }
   useEffect(() => setText(initialText), [initialText]);

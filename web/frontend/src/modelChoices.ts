@@ -1,4 +1,8 @@
-import type { LlmEntry } from "./api";
+import type { LlmEntry, ModelProfile } from "./api";
+
+export function previewEffort(profile?: Pick<ModelProfile, "efforts" | "default_effort">) {
+  return ["low", "minimal", "medium"].find(effort => profile?.efforts.includes(effort)) ?? profile?.default_effort ?? null;
+}
 
 export const agentProvider = (model: string) => model.startsWith("chatgpt/") ? "openai" : model.split("/")[0];
 export const providerLabel = (provider: string) => ({ openai: "OpenAI", anthropic: "Claude", openrouter: "OpenRouter",

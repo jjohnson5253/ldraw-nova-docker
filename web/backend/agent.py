@@ -34,6 +34,7 @@ litellm.drop_params = False           # unsupported settings must fail visibly
 litellm.suppress_debug_info = True
 
 MAX_STEPS = 150
+PREVIEW_MAX_STEPS = 24
 KEEP_IMAGE_MESSAGES = 2               # only the newest renders are re-sent to vision models
 WORK_LISTING_LIMIT = 60               # files of the work folder listed in the system prompt
 
@@ -109,22 +110,23 @@ def work_listing(work_dir: Path) -> str:
     return "\n".join(lines) or "(empty)"
 
 
-def system_prompt(store: ChatStore, chat_id: str) -> str:
+def system_prompt(store: ChatStore, chat_id: str, options: dict | None = None) -> str:
     work_dir = store.work_dir(chat_id)
-    text = (settings.PROMPTS_DIR / "system.md").read_text()
+    template = "preview.md" if options and options.get("build_mode") == "preview" else "system.md"
+    text = (settings.PROMPTS_DIR / template).read_text()
     prompt = (text.replace("{work_dir}", str(work_dir))
                 .replace("{work_listing}", work_listing(work_dir))
                 .replace("{generated_dir}", str(settings.GENERATED_DIR))
                 .replace("{ldraw_dir}", str(settings.LDRAW_DIR))
-                .replace("{artifact_base}", f"/api/chats/{chat_id}/artifacts")
-                .replace("{toolkit_instructions}", toolkit.instructions())
-                .replace("{toolkit_guides}", toolkit.builder_guides()))
+                .replace("{artifact_base}", f"/api/chats/{chat_id}/artifacts"))
+    if template == "system.md":
+        prompt = prompt.replace("{toolkit_instructions}", toolkit.instructions()).replace("{toolkit_guides}", toolkit.builder_guides())
     notes = work_dir / "NOTES.md"
     if notes.is_file() and not notes.is_symlink():
         with notes.open(errors="replace") as handle:
             prompt += "\n\nCurrent hand-over notes (workspace data):\n" + handle.read(16000)
     if parts_policy.policy.prepare(store, chat_id):
-        prompt += parts_policy.POLICY_PROMPT
+        prompt += parts_policy.PREVIEW_POLICY_PROMPT if template == "preview.md" else parts_policy.POLICY_PROMPT
     return prompt
 
 
@@ -286,7 +288,8 @@ async def _run_turn(store: ChatStore, run: Run, entry: dict) -> None:
     caps = llm_config.capabilities(entry)
     vision = caps["vision"] is True
     use_tools = caps["tools"] is not False and run.options.get("mode") != "chat"
-    ctx = ToolContext(chat_id=chat_id, store=store, emit=run.emit)
+    ctx = ToolContext(chat_id=chat_id, store=store, emit=run.emit,
+                      build_mode=run.options.get("build_mode", "preview"))
 
     def save(message: dict) -> int:
         msg_id = store.add_message(chat_id, message)
@@ -296,11 +299,12 @@ async def _run_turn(store: ChatStore, run: Run, entry: dict) -> None:
     try:
         if inference.uses_claude_sdk(entry):
             from claude_agent import run_claude
-            await run_claude(store, run, entry, save, execute_tool, system_prompt(store, chat_id), use_tools)
+            await run_claude(store, run, entry, save, execute_tool, system_prompt(store, chat_id, run.options), use_tools)
             return
         params = await inference.params_for(entry, run.options)
-        for _step in range(MAX_STEPS):
-            prompt = system_prompt(store, chat_id) + mode_prompt(run.options)
+        limit = step_limit(run.options)
+        for _step in range(limit):
+            prompt = system_prompt(store, chat_id, run.options) + mode_prompt(run.options)
             messages = [{"role": "system", "content": prompt},
                         *llm_history(store.messages(chat_id), vision, lambda ref: store.resolve(chat_id, ref), entry["litellm_params"]["model"], mark_turns=True)]
             budget = run.options.get("context_tokens") or model_catalog.profile(entry["litellm_params"]["model"])["context_window"]
@@ -367,12 +371,15 @@ async def _run_turn(store: ChatStore, run: Run, entry: dict) -> None:
                       "_models": [m["id"] for m in result.models], "_images": refs})
                 run.emit("tool_end", {"id": call["id"], "name": name})
                 images += refs
+                if ctx.build_mode == "preview" and result.models:
+                    save(preview_message(chat_id, result.models[-1]))
+                    return
             if images and vision:
                 save({"role": "user", "content": "Renders produced by the tool calls above:",
                       "_images_for_llm": images, "_hidden": True})
         else:
             save({"role": "assistant", "_ui_only": True, "_notice": True,
-                  "content": f"Stopped after {MAX_STEPS} steps. Send a message to continue."})
+                  "content": f"Stopped after {limit} steps. Send a message to continue."})
     except asyncio.CancelledError:
         if run.draft:
             save({"role": "assistant", "content": run.draft})
@@ -395,6 +402,15 @@ async def _run_turn(store: ChatStore, run: Run, entry: dict) -> None:
 READ_TOOLS = {"list_allowed_parts", "check_model_parts", "list_files", "read_file", "view_image", "report_progress"}
 
 
+def step_limit(options: dict) -> int:
+    return PREVIEW_MAX_STEPS if options.get("build_mode", "preview") == "preview" else MAX_STEPS
+
+
+def preview_message(chat_id: str, model: dict) -> dict:
+    return {"role": "assistant", "content": f"[Preview ready](/chat/{chat_id}#model-{model['id']}). "
+            "Inspect it in 3D, request edits, or choose Verify Build to run the full checks."}
+
+
 def mode_prompt(options: dict) -> str:
     if options.get("mode") == "plan":
         return "\nPLAN MODE: inspect with read-only tools and propose a plan. Do not execute commands or change files."
@@ -408,6 +424,20 @@ def available_tools(options: dict) -> list[dict]:
         return []
     if options.get("mode") == "plan" or options.get("permissions") == "read_only":
         return [t for t in TOOL_SCHEMAS if t["function"]["name"] in READ_TOOLS]
+    if options.get("build_mode", "preview") == "preview":
+        import copy
+        schemas = copy.deepcopy(TOOL_SCHEMAS)
+        for schema in schemas:
+            if schema["function"]["name"] == "publish_model":
+                schema["function"]["description"] = (
+                    "Publish an unchecked output MPD as an interactive 3D preview. No validation or synchronous "
+                    "rendering is performed. Call once when the preview is ready, then stop this turn.")
+            elif schema["function"]["name"] == "run_toolkit":
+                schema["function"]["description"] = (
+                    "Run ./ldraw-agent with a CLI argument array in the prepared toolkit workspace. "
+                    "Read only needed spec references, build and embed assets. Defer validation, rendering "
+                    "and review to Verify Build. Write under output/.")
+        return schemas
     return TOOL_SCHEMAS
 
 
