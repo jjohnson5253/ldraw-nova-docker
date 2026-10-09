@@ -39,6 +39,7 @@ async def run_claude(store, run, entry, save, execute, prompt, use_tools):
     ctx = ToolContext(chat_id=run.chat_id, store=store, emit=run.emit,
                       build_mode=run.options.get("build_mode", "preview"))
     preview_published = None
+    preview_interrupted = False
     sdk_tools = []
     for schema in available_tools(run.options) if use_tools else []:
         fn = schema["function"]
@@ -117,11 +118,15 @@ async def run_claude(store, run, entry, save, execute, prompt, use_tools):
     async with ClaudeSDKClient(options=options) as client:
         await client.query(user_message())
         async for event in client.receive_response():
-            if preview_published:
+            if preview_published and not preview_interrupted:
                 await client.interrupt()
+                preview_interrupted = True
                 run.draft = ""
                 save(preview_message(run.chat_id, preview_published))
-                return
+            if preview_interrupted:
+                # Drain the terminal result after interrupt so consumers can
+                # account for provider usage and enforce their spending limits.
+                continue
             if isinstance(event, StreamEvent):
                 delta = event.event.get("delta", {})
                 if event.event.get("type") == "content_block_delta" and delta.get("type") == "text_delta":

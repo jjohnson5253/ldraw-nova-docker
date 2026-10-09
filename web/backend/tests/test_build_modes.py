@@ -173,6 +173,7 @@ def test_claude_preview_uses_short_limit_and_denies_post_publication_tools(monke
             shell = next(t for t in recorded["tools"] if t.name == "run_shell")
             recorded["denied"] = await shell.handler({"command": "./check-model.sh model.mpd"})
             yield AssistantMessage(content=[TextBlock(text="Preview ready")], model="claude-opus-5-5")
+            recorded["drained"] = True
     def server(**kwargs):
         recorded["tools"] = kwargs["tools"]
         return {}
@@ -190,4 +191,5 @@ def test_claude_preview_uses_short_limit_and_denies_post_publication_tools(monke
     assert recorded["options"].max_turns == agent.PREVIEW_MAX_STEPS
     assert calls == [("publish_model", "preview")]
     assert recorded["interrupted"] and "Preview ready" in saved[-1]["content"]
+    assert recorded["drained"] is True
     assert "already published" in recorded["denied"]["content"][0]["text"]
