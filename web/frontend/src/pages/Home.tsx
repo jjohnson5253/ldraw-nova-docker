@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { api, type TurnOptions, type DocumentUpload } from "../api";
 import Composer from "../components/Composer";
+import PartsPalette from "../components/PartsPalette";
 import { useApp } from "../context";
 
 const EXAMPLES = [
@@ -17,6 +18,8 @@ export default function Home() {
   const [llmId, setLlmId] = useState<string | null>(defaultLlmId);
   const [example, setExample] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [paletteCsv, setPaletteCsv] = useState<string | null>(null);
+  const [paletteBusy, setPaletteBusy] = useState(true);
 
   useEffect(() => {
     if (!llmId || !llms.some((m) => m.id === llmId)) setLlmId(defaultLlmId ?? llms[0]?.id ?? null);
@@ -25,7 +28,8 @@ export default function Home() {
   async function start(text: string, options: TurnOptions, images: string[], documents: DocumentUpload[]) {
     setError(null);
     try {
-      const chat = await api.createChat(llmId);
+      if (paletteBusy) throw new Error('Wait for the palette to finish loading.');
+      const chat = await api.createChat(llmId, paletteCsv);
       await api.send(chat.id, text, llmId, options, images, documents);
       refreshChats();
       navigate(`/chat/${chat.id}`);
@@ -52,11 +56,13 @@ export default function Home() {
         ))}
       </div>
       {error && <div className="banner error">{error}</div>}
+      <PartsPalette onChange={setPaletteCsv} onBusy={setPaletteBusy} />
       <Composer
         llmId={llmId}
         onLlmChange={setLlmId}
         onSend={start}
         running={false}
+        blocked={paletteBusy}
         autoFocus
         initialText={example}
       />
