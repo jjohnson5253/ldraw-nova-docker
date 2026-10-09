@@ -1,0 +1,38 @@
+name: Railway Nova image
+
+on:
+  pull_request:
+    branches: [main-BrickBuilderAI]
+  push:
+    branches: [main-BrickBuilderAI]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  image:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check Railway recipe
+        run: python3 -m unittest discover -s tests
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Railway.Dockerfile
+          platforms: linux/amd64
+          load: true
+          tags: nova-railway:check
+          build-args: NOVA_WEB_REVISION=${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+      - name: Check runtime metadata and private gateway
+        run: >-
+          docker run --rm --entrypoint python3
+          -v "$PWD/tests/railway_runtime_smoke.py:/tmp/runtime-smoke.py:ro"
+          -e NOVA_SERVICE_TOKEN=smoke-local-only
+          -e EXPECTED_WEB_REVISION=${{ github.sha }}
+          nova-railway:check /tmp/runtime-smoke.py
