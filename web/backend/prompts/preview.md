@@ -11,9 +11,13 @@ design, reference-discovery, parts-selection and construction guidance.
    generator and preserve the design's scale and unaffected details.
 2. Construct with the usual builder/serializer and ordinary brick alignment,
    stacking and module anchors. Keep syntax, references and execution valid.
-   For plan-based generators, use load_plan/build_plan through run_python to
-   serialize the model; defer the CLI build command's global geometry/contact
-   gate. Do not inspect or repair connectivity merely to make a preview pass.
+   For JSON plans, use the familiar build command through run_toolkit. In
+   preview mode it keeps construction/syntax checks and writes the MPD while
+   deferring global geometry/contact checks. Its successful exit means the
+   preview was constructed, not structurally verified. Use run_toolkit rather
+   than invoking build through run_shell, which bypasses this adapter. Existing
+   Python generators may also use the ordinary builder/serializer. Do not
+   inspect or repair connectivity merely to make a preview pass.
 3. Render the assembled model with the ordinary render command (which does not
    check connectivity) and open the actual image
    with view_image BEFORE publication. Compare its silhouette, proportions,

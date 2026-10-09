@@ -438,6 +438,7 @@ def available_tools(options: dict) -> list[dict]:
             elif schema["function"]["name"] == "run_toolkit":
                 schema["function"]["description"] = (
                     "Run ./ldraw-agent with a CLI argument array in the prepared toolkit workspace. "
+                    "The build command constructs an unchecked MPD with syntax checks; global structural checks are deferred. "
                     "Use design references, discover parts, and render for visual review. Rendering does not check connectivity. "
                     "Defer geometry/contact validation, connection repair, BOM comparison and instruction checks "
                     "to Verify Build. Write under output/.")

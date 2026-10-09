@@ -44,4 +44,4 @@ jobs:
           nova-railway:check -c
           'pip install --quiet --break-system-packages -r /tmp/requirements-dev.txt &&
           cd /app/web/backend && python3 -m pytest
-          tests/test_build_modes.py tests/test_builder_settings.py tests/test_parts_policy.py -q'
+          tests/test_build_modes.py tests/test_preview_build.py tests/test_builder_settings.py tests/test_parts_policy.py -q'
