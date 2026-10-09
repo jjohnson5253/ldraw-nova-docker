@@ -131,6 +131,13 @@ def test_verify_endpoint_uses_latest_published_revision_and_retains_permissions(
     assert "latest.mpd" in args[2] and "old.mpd" not in args[2]
     assert args[3] == "chosen" and args[4]["permissions"] == "ask"
     assert args[4]["build_mode"] == "verify" and "effort" not in args[4]
+    selected_id = store.models(chat["id"])[0]["id"]
+    response = client.post(f"/api/chats/{chat['id']}/verify", json={"model_id": selected_id, "permissions": "full"})
+    assert response.status_code == 202
+    assert "old.mpd" in calls[-1][2] and "latest.mpd" not in calls[-1][2]
+    assert calls[-1][4]["permissions"] == "full"
+    assert client.post(f"/api/chats/{chat['id']}/verify", json={"model_id": "another-chat-model"}).status_code == 404
+    assert client.post(f"/api/chats/{chat['id']}/verify", json={"permissions": "invalid"}).status_code == 422
 
 
 def test_verify_endpoint_rejects_missing_busy_deleted_and_foreign_model(monkeypatch, store, tmp_path):

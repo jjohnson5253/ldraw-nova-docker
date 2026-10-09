@@ -34,7 +34,10 @@ both workflows and cannot be changed through an agent-written reference CSV.
 
 API clients can set `options.build_mode` to `preview` (the default) or `verify`.
 `POST /api/chats/{id}/verify` with an optional `llm_model_id` starts the full review
-of that chat's latest published revision. It rejects chats without a model, deleted
+of that chat's latest published revision. Consumers can provide `model_id` to
+verify a specific saved revision and `permissions` to explicitly select tool
+permissions; omitted permissions retain the chat's current setting. It rejects
+models outside the selected conversation, chats without a model, deleted
 models, and active turns. The endpoint preserves the conversation's permissions;
 it does not silently grant full tool access. Direct internal ToolContext callers
 retain checked publication by default for compatibility.

@@ -12,7 +12,7 @@ import tempfile
 import zipfile
 from contextlib import asynccontextmanager
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any, Literal, Optional
 from urllib.parse import quote, unquote, urlsplit
 
 import environment_config
@@ -488,6 +488,8 @@ class ApprovalDecision(BaseModel):
 
 class VerifyBuild(BaseModel):
     llm_model_id: str | None = None
+    model_id: str | None = Field(default=None, min_length=1, max_length=64, pattern=r'^[A-Za-z0-9_-]+$')
+    permissions: Literal["ask", "full", "read_only"] | None = None
 
 
 @app.post("/api/chats/{chat_id}/verify", status_code=202)
@@ -499,13 +501,17 @@ async def chats_verify(chat_id: str, body: VerifyBuild):
     models = store.models(chat_id)
     if not models:
         raise HTTPException(400, "Create a preview before verifying the build")
-    latest = models[-1]
+    latest = next((model for model in models if model["id"] == body.model_id), None) if body.model_id else models[-1]
+    if latest is None:
+        raise HTTPException(404, "The selected model is not in this conversation")
     path = store.resolve(chat_id, latest["model"])
     if not path.is_file() or not path.resolve().is_relative_to(settings.GENERATED_DIR.resolve()):
         raise HTTPException(400, "The latest model is no longer available; create another preview")
     # Verify the immutable published revision, rather than an agent's possibly
     # changed working file. start_turn owns admission and retains permissions.
     options = {**(chat.get("options") or {}), "mode": "agent", "build_mode": "verify"}
+    if body.permissions is not None:
+        options["permissions"] = body.permissions
     options.pop("effort", None)  # Restore normal model effort for the full review.
     options.pop("context_tokens", None)  # A newly selected provider may have a different window.
     text = (f"Verify Build: fully validate the latest preview at {path}. "
