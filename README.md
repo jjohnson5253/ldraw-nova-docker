@@ -26,7 +26,8 @@ COMING SOON
 
 ## Configuration
 
-COMING SOON
+See [Parts palettes](docs/parts-palettes.md) to upload an allowed-parts CSV or
+configure a local default palette for the agent.
 
 ## Development
 

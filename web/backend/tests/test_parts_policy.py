@@ -137,3 +137,48 @@ def test_native_catalog_endpoint_preserves_chat_and_running_boundaries(configure
     monkeypatch.setattr(agent, 'is_running', lambda chat: True)
     assert client.put(endpoint, json={'csv': CATALOG}).status_code == 409
     assert client.put(endpoint, headers={'Origin': 'https://other.example'}, json={'csv': CATALOG}).status_code == 403
+
+
+def test_new_chat_upload_is_validated_before_creation_and_persisted(configured, monkeypatch):
+    policy, store, _ = configured
+    monkeypatch.setattr(main, 'get_store', lambda: store)
+    client = TestClient(main.app)
+    before = len(store.list_chats())
+    assert client.post('/api/chats', json={'parts_palette_csv': 'invalid'}).status_code == 400
+    assert len(store.list_chats()) == before
+    response = client.post('/api/chats', json={'parts_palette_csv': CATALOG})
+    assert response.status_code == 200
+    chat = response.json()['id']
+    assert policy.load(chat).parts[('3001', 4)].max_quantity == 4
+    assert client.get(f'/api/chats/{chat}/parts-palette').json()['allowed_combinations'] == 1
+    assert client.get('/api/chats/missing/parts-palette').status_code == 404
+
+
+def test_clear_returns_to_default_and_cannot_modify_a_running_chat(configured, monkeypatch, tmp_path):
+    policy, store, chat = configured
+    monkeypatch.setattr(main, 'get_store', lambda: store)
+    client = TestClient(main.app)
+    endpoint = f'/api/chats/{chat}/parts-palette'
+    monkeypatch.setattr(agent, 'is_running', lambda _: True)
+    assert client.delete(endpoint).status_code == 409
+    assert policy.load(chat) is not None
+    monkeypatch.setattr(agent, 'is_running', lambda _: False)
+    assert client.delete(endpoint).json()['allowed_combinations'] is None
+    assert policy.load(chat) is None
+    assert not (store.work_dir(chat) / 'allowed-parts.csv').exists()
+    default = tmp_path / 'default.csv'; default.write_text(CATALOG.replace('3001,4', '3001,0'))
+    policy.default_catalog = default
+    policy.configure(store, chat, CATALOG)
+    assert client.delete(endpoint).json()['default_available'] is True
+    assert policy.load(chat).search(color_id=0)['total'] == 1
+
+
+def test_validate_and_example_do_not_change_a_chat_palette(configured):
+    policy, _, chat = configured
+    client = TestClient(main.app)
+    assert client.post('/api/parts-palette/validate', json={'csv': CATALOG}).json()['allowed_combinations'] == 1
+    assert client.post('/api/parts-palette/validate', json={'csv': 'invalid'}).status_code == 400
+    assert policy.load(chat).search(color_id=4)['total'] == 1
+    example = client.get('/api/parts-palette/example')
+    assert example.headers['content-type'].startswith('text/csv')
+    assert 'part_id,color_id,max_quantity' in example.text

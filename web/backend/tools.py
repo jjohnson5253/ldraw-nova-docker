@@ -12,6 +12,8 @@ import asyncio
 import subprocess
 import inspect
 import hashlib
+import asyncio
+import subprocess
 import json
 import re
 import shutil
@@ -25,6 +27,7 @@ import sandbox
 import settings
 import parts_policy
 import toolkit
+import parts_policy
 import environment_config
 import gallery
 from leocad_render import bom_path_for, list_models, snapshot_path_for
@@ -177,8 +180,8 @@ async def t_publish_model(ctx: ToolContext, path: str, name: str | None = None) 
     try:
         parts_report = await asyncio.to_thread(parts_policy.policy.validate_model, ctx.chat_id, source_bytes)
     except (ValueError, OSError, subprocess.SubprocessError):
-        raise ToolError("Catalog validation blocked publication. Run check_model_parts for the unavailable "
-                        "parts, repair the model, and publish again.") from None
+        raise ToolError("Palette validation blocked publication. Run check_model_parts, repair the "
+                        "unavailable parts or colors, and publish again.") from None
     report = review / "validation.json"
     ctx.emit("progress", {"summary": "Checking the model with LDraw Nova before publication."})
     validation = await run_command(ctx, ["./ldraw-agent", "validate", str(revision), "--geometry",
@@ -219,7 +222,7 @@ async def t_publish_model(ctx: ToolContext, path: str, name: str | None = None) 
               "physical_validity": "not_proven", "warnings": warnings,
               "note": "Open the preview with view_image and complete visual review and compare-bom before final delivery."}
     if parts_report is not None:
-        result["parts_catalog"] = parts_report
+        result["parts_palette"] = parts_report
     if image.exists():
         result["preview"] = artifact_url(ctx, image)
         result["preview_path"] = str(image)
@@ -234,7 +237,9 @@ async def t_list_allowed_parts(ctx: ToolContext, query: str = "", color_id: int 
     catalog = parts_policy.policy.load(ctx.chat_id)
     if catalog is None:
         raise ToolError("No parts catalog is configured for this session")
-    if len(query) > 200 or not 0 <= offset <= 100000 or not 1 <= limit <= 100:
+    if (not isinstance(query, str) or len(query) > 200 or type(offset) is not int
+            or type(limit) is not int or not 0 <= offset <= 100000 or not 1 <= limit <= 100
+            or color_id is not None and type(color_id) is not int):
         raise ToolError("Use a query of at most 200 characters and a limit between 1 and 100")
     return ToolResult(json.dumps(catalog.search(query, color_id, offset=offset, limit=limit)))
 

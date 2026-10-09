@@ -106,6 +106,18 @@ class ChatPartsPolicy:
         catalog.validate(inventory)
         return {"valid": True, "physical_parts": sum(inventory.values())}
 
+    def info(self, chat_id: str | None = None) -> dict:
+        catalog = self.load(chat_id) if chat_id else (
+            PartsCatalog.load(self.default_catalog) if self.default_catalog else None)
+        return {"allowed_combinations": len(catalog.parts) if catalog else None,
+                "default_available": self.default_catalog is not None}
+
+    def clear(self, store, chat_id: str) -> None:
+        """Return this chat to the server default, or to unrestricted parts."""
+        self.path(chat_id).unlink(missing_ok=True)
+        (store.work_dir(chat_id) / "allowed-parts.csv").unlink(missing_ok=True)
+        self.prepare(store, chat_id)
+
 
 def expanded_inventory(content: bytes, toolkit_dir: Path, ldraw_dir: Path) -> dict:
     if len(content) > 32 * 1024 * 1024:
