@@ -46,7 +46,8 @@ def main():
         assert versions["toolkit"] == expected["toolkit"]
         assert versions["parts_catalog_version"] == 1
         assert versions["generation_usage_version"] == 1
-        assert Path("/opt/ldraw-nova/ldraw_tools/parts_policy.py").is_file()
+        assert Path("/opt/ldraw-nova/ldraw_tools/parts_catalog.py").is_file()
+        assert Path("/app/web/backend/parts_policy.py").is_file()
         print("Runtime startup, metadata, parts support, and gateway authorization passed.")
     finally:
         process.terminate()
