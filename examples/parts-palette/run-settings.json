@@ -1,0 +1,19 @@
+{
+  "date": "2026-10-10",
+  "model": "openai/gpt-6-sol",
+  "prompt": "Build a small red garden lookout tower with a raised square platform, four red corner pillars, a black roof, and an open doorway. Aim for about 40\u201370 physical parts. Make it attractive, recognizable, connected and easy to build. Use whichever parts the active settings permit. Publish the finished model with a preview and parts list.",
+  "options": {
+    "mode": "agent",
+    "permissions": "full",
+    "effort": "medium",
+    "context_tokens": 1050000
+  },
+  "restricted": {
+    "chat_id": "20261010-151256-c99259",
+    "parts_palette_enabled": true
+  },
+  "unrestricted": {
+    "chat_id": "20261010-151441-d010c9",
+    "parts_palette_enabled": false
+  }
+}
