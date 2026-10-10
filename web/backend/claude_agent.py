@@ -34,20 +34,14 @@ def sdk_environment(entry):
 
 
 async def run_claude(store, run, entry, save, execute, prompt, use_tools):
-    from agent import step_limit, available_tools, llm_history, mode_prompt, preview_message
+    from agent import MAX_STEPS, available_tools, llm_history, mode_prompt
 
-    ctx = ToolContext(chat_id=run.chat_id, store=store, emit=run.emit,
-                      build_mode=run.options.get("build_mode", "preview"))
-    preview_published = None
-    preview_interrupted = False
+    ctx = ToolContext(chat_id=run.chat_id, store=store, emit=run.emit)
     sdk_tools = []
     for schema in available_tools(run.options) if use_tools else []:
         fn = schema["function"]
 
         async def handle(args, name=fn["name"]):
-            nonlocal preview_published
-            if preview_published:
-                return {"content": [{"type": "text", "text": "Preview already published. Stop and let the user inspect it."}]}
             call_id = uuid.uuid4().hex
             arguments = json.dumps(args)
             save({"role": "assistant", "content": None,
@@ -57,8 +51,6 @@ async def run_claude(store, run, entry, save, execute, prompt, use_tools):
             run.emit("tool_start", info)
             try:
                 result = await execute(run, ctx, call_id, name, arguments)
-                if ctx.build_mode == "preview" and result.models:
-                    preview_published = result.models[-1]
                 refs = [store.ref(run.chat_id, path) for path in result.images]
                 save({"role": "tool", "tool_call_id": call_id, "name": name, "content": result.content,
                       "_models": [m["id"] for m in result.models], "_images": refs})
@@ -112,21 +104,12 @@ async def run_claude(store, run, entry, save, execute, prompt, use_tools):
         strict_mcp_config=True,
         mcp_servers={"ldraw": create_sdk_mcp_server(name="ldraw", tools=sdk_tools)} if sdk_tools else {},
         allowed_tools=[f"mcp__ldraw__{t.name}" for t in sdk_tools],
-        permission_mode="dontAsk", max_turns=step_limit(run.options), effort=run.options.get("effort"),
+        permission_mode="dontAsk", max_turns=MAX_STEPS, effort=run.options.get("effort"),
         include_partial_messages=True, max_buffer_size=32 * 1024 * 1024,
     )
     async with ClaudeSDKClient(options=options) as client:
         await client.query(user_message())
         async for event in client.receive_response():
-            if preview_published and not preview_interrupted:
-                await client.interrupt()
-                preview_interrupted = True
-                run.draft = ""
-                save(preview_message(run.chat_id, preview_published))
-            if preview_interrupted:
-                # Drain the terminal result after interrupt so consumers can
-                # account for provider usage and enforce their spending limits.
-                continue
             if isinstance(event, StreamEvent):
                 delta = event.event.get("delta", {})
                 if event.event.get("type") == "content_block_delta" and delta.get("type") == "text_delta":

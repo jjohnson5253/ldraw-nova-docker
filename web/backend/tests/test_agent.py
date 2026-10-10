@@ -94,7 +94,7 @@ def test_turn_runs_tool_saves_renders_and_answers(monkeypatch, entry, store: Cha
     (store.work_dir(chat["id"]) / "NOTES.md").write_text("plan: example bridge")
 
     async def run():
-        await agent.start_turn(store, chat["id"], "build an example bridge", entry["id"], {"permissions": "full", "build_mode": "verify"})
+        await agent.start_turn(store, chat["id"], "build an example bridge", entry["id"], {"permissions": "full"})
         await agent._runs[chat["id"]].task
 
     asyncio.run(run())

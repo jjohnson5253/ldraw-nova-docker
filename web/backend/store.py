@@ -129,12 +129,9 @@ class ChatStore:
 
     # --- models the chat produced (references into data/generated) ---------
 
-    def add_model(self, chat_id: str, name: str, model_path: Path, warnings: list[str],
-                  *, validation_status: str | None = None) -> dict:
+    def add_model(self, chat_id: str, name: str, model_path: Path, warnings: list[str]) -> dict:
         record = {"id": secrets.token_hex(6), "name": name, "model": self.ref(chat_id, model_path),
                   "warnings": warnings, "created_at": time.time()}
-        if validation_status is not None:
-            record["validation_status"] = validation_status
         with self._lock:
             self._append(chat_id, "models.jsonl", record)
         return record
