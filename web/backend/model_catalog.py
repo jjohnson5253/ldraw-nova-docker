@@ -62,10 +62,8 @@ def entry_profile(entry: dict) -> dict:
 
 
 def validate_options(entry: dict, options: dict | None) -> dict:
-    value = {"mode": "agent", "permissions": "ask", "effort": None, "context_tokens": None,
-             "build_mode": "preview", **(options or {})}
-    if value["build_mode"] not in ("preview", "verify"):
-        raise ValueError("Unknown build mode")
+    value = {"mode": "agent", "permissions": "ask", "effort": None, "context_tokens": None, **(options or {})}
+    value.pop("build_mode", None)  # discard the removed workflow in saved chats/older clients
     if value["mode"] not in ("plan", "agent"):
         raise ValueError("Unknown mode")
     if value["permissions"] not in ("ask", "full", "read_only"):

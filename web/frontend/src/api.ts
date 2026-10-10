@@ -24,8 +24,7 @@ export type ModelFile = {
 };
 
 /** A model a chat produced: a reference into data/generated. */
-export type ChatModel = ModelFile & { id: string; warnings: string[]; created_at: number;
-  validation_status?: "preview" | "passed" | "failed" | null };
+export type ChatModel = ModelFile & { id: string; warnings: string[]; created_at: number };
 
 export type Chat = {
   id: string;
@@ -65,7 +64,7 @@ export type EnvironmentVariable = { id: string; name: string; value: null; has_v
 export type EnvironmentUpdate = { id?: string; name: string; value: string | null };
 export type DocumentUpload = { name: string; data: string };
 export type ConnectionStatus = "not_tested" | "connected" | "not_connected";
-export type TurnOptions = { mode: "plan" | "agent"; permissions: "ask" | "full" | "read_only"; effort?: string | null; context_tokens?: number | null; build_mode?: "preview" | "verify" };
+export type TurnOptions = { mode: "plan" | "agent"; permissions: "ask" | "full" | "read_only"; effort?: string | null; context_tokens?: number | null };
 export type ModelProfile = {
   model: string; name: string; context_window: number | null; efforts: string[]; default_effort: string | null; context_budgets: number[];
   max_output_tokens?: number | null; tools?: boolean | null; vision?: boolean | null; reasoning?: boolean | null;
@@ -121,8 +120,6 @@ export const api = {
   send: (id: string, text: string, llm_model_id?: string | null, options?: TurnOptions, images?: string[], documents?: DocumentUpload[]) =>
     request(`/api/chats/${id}/messages`, { method: "POST", body: json({ text, llm_model_id, options, images, documents }) }),
   approve: (id: string, approval: string, approved: boolean) => request(`/api/chats/${id}/approvals/${approval}`, { method: "POST", body: json({ approved }) }),
-  verifyBuild: (id: string, llm_model_id?: string | null) =>
-    request(`/api/chats/${id}/verify`, { method: "POST", body: json({ llm_model_id }) }),
   catalog: () => request<{ models: ModelProfile[] }>("/api/model-catalog"),
   authStatus: (provider: string) => request<AuthStatus>(`/api/auth/${provider}`),
   login: (provider: string, flow: "browser" | "device" = "browser") => request<AuthStatus>(`/api/auth/${provider}/login`, { method: "POST", body: json({ flow, restart: true }) }),
