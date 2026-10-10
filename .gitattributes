@@ -1,0 +1,2 @@
+# Preserve the exact CRLF bytes captured from the published LDraw models.
+examples/parts-palette/**/*.mpd -text whitespace=cr-at-eol
