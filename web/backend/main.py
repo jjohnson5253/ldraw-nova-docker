@@ -29,6 +29,8 @@ from pydantic import BaseModel, Field
 from starlette.background import BackgroundTask
 
 import agent
+import parts_policy
+from parts_catalog import PartsCatalog
 import gallery
 import glb
 import llm_config
@@ -40,7 +42,6 @@ import render
 from attachments import validate_documents, validate_images
 import sandbox
 import settings
-import parts_policy
 from leocad_render import MODEL_SUFFIXES, bom_path_for, snapshot_path_for
 from paths import rel_to, safe_join
 from store import ChatStore, get_store
@@ -290,7 +291,9 @@ def llm_provider_models(provider: str):
 # --- chats -------------------------------------------------------------------
 
 class NewChat(BaseModel):
+    parts_palette_enabled: bool = True
     llm_model_id: Optional[str] = None
+    parts_palette_csv: Optional[str] = Field(default=None, min_length=1, max_length=16 * 1024 * 1024)
 
 
 class ChatPatch(BaseModel):
@@ -402,7 +405,88 @@ def chats_list():
 
 @app.post("/api/chats")
 def chats_create(body: NewChat):
-    return get_store().create_chat(llm_model_id=body.llm_model_id)
+    if body.parts_palette_csv is not None:
+        try:
+            PartsCatalog.from_csv(body.parts_palette_csv)
+        except ValueError as exc:
+            raise HTTPException(400, str(exc)) from None
+    store = get_store()
+    chat = store.create_chat(llm_model_id=body.llm_model_id)
+    if body.parts_palette_csv is not None:
+        parts_policy.policy.configure(store, chat["id"], body.parts_palette_csv)
+    if not body.parts_palette_enabled:
+        parts_policy.policy.set_enabled(store, chat["id"], False)
+    return chat
+
+
+class PartsPaletteRequest(BaseModel):
+    csv: str = Field(min_length=1, max_length=16 * 1024 * 1024)
+
+
+@app.get('/api/parts-palette')
+def default_parts_palette():
+    return parts_policy.policy.info()
+
+
+@app.get('/api/parts-palette/example')
+def example_parts_palette():
+    return PlainTextResponse('part_id,color_id,max_quantity\n3001,4,20\n3002,0,10\n',
+        media_type='text/csv', headers={'Content-Disposition': 'attachment; filename="parts-palette-example.csv"'})
+
+
+@app.post('/api/parts-palette/validate')
+async def validate_parts_palette(body: PartsPaletteRequest):
+    try:
+        palette = PartsCatalog.from_csv(body.csv)
+    except ValueError as exc:
+        raise HTTPException(400, str(exc)) from None
+    return {"allowed_combinations": len(palette.parts),
+            "enabled": True, "default_available": parts_policy.policy.default_catalog is not None}
+
+
+@app.get('/api/chats/{chat_id}/parts-palette')
+def chat_parts_palette(chat_id: str):
+    get_store().get_chat(chat_id) or _not_found("no such chat")
+    return parts_policy.policy.info(chat_id)
+
+
+def palette_edit_store(chat_id: str):
+    store = get_store()
+    store.get_chat(chat_id) or _not_found("no such chat")
+    if agent.is_running(chat_id):
+        raise HTTPException(409, "Wait for the current turn to finish before changing its palette")
+    return store
+
+
+@app.put('/api/chats/{chat_id}/parts-palette')
+async def configure_parts_palette(chat_id: str, body: PartsPaletteRequest):
+    store = palette_edit_store(chat_id)
+    try:
+        parts_policy.policy.configure(store, chat_id, body.csv)
+    except ValueError as exc:
+        raise HTTPException(400, str(exc)) from None
+    return parts_policy.policy.info(chat_id)
+
+
+class PartsPaletteSelection(BaseModel):
+    enabled: bool
+
+
+@app.patch('/api/chats/{chat_id}/parts-palette')
+async def select_parts_palette(chat_id: str, body: PartsPaletteSelection):
+    store = palette_edit_store(chat_id)
+    try:
+        parts_policy.policy.set_enabled(store, chat_id, body.enabled)
+    except ValueError as exc:
+        raise HTTPException(400, str(exc)) from None
+    return parts_policy.policy.info(chat_id)
+
+
+@app.delete('/api/chats/{chat_id}/parts-palette')
+async def clear_parts_palette(chat_id: str):
+    store = palette_edit_store(chat_id)
+    parts_policy.policy.clear(store, chat_id)
+    return parts_policy.policy.info(chat_id)
 
 
 class PartsCatalogRequest(BaseModel):

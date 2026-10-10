@@ -1,0 +1,170 @@
+0 FILE ember-garden-lookout.ldr
+0 Ember Garden Lookout - open red tower with black canopy
+0 Name: ember-garden-lookout.ldr
+0 Author: OpenAI for this workspace
+0 !LDRAW_ORG Model
+0 // footing: ground foundation
+1 16 0 0 0 1 0 0 0 1 0 0 0 1 ember-ground.ldr
+0 STEP
+0 // portal: four supports leaving front doorway unobstructed
+1 16 0 0 0 1 0 0 0 1 0 0 0 1 ember-lower-piers.ldr
+0 STEP
+0 // deck: raised viewing platform seated on the lower posts
+1 16 0 -80 0 1 0 0 0 1 0 0 0 1 ember-deck.ldr
+0 STEP
+0 // posts: four viewing posts
+1 16 0 -80 0 1 0 0 0 1 0 0 0 1 ember-upper-piers.ldr
+0 STEP
+0 // canopy: sheltering bonded black roof
+1 16 0 -160 0 1 0 0 0 1 0 0 0 1 ember-canopy.ldr
+0 NOFILE
+0 FILE ember-ground.ldr
+0 Square grey footing with bonded center seam
+0 Name: ember-ground.ldr
+0 Author: OpenAI for this workspace
+0 !LDRAW_ORG Model
+0 // ground--40: ground slab
+1 72 0 0 -40 1 0 0 0 1 0 0 0 1 3035.dat
+0 // ground-40: ground slab
+1 72 0 0 40 1 0 0 0 1 0 0 0 1 3035.dat
+0 STEP
+0 // ground-stitch--40: bridge both ground slabs
+1 0 -40 -8 0 1 0 0 0 1 0 0 0 1 3020.dat
+0 // ground-stitch-40: bridge both ground slabs
+1 0 40 -8 0 1 0 0 0 1 0 0 0 1 3020.dat
+0 NOFILE
+0 FILE ember-lower-piers.ldr
+0 Four open portal supports
+0 Name: ember-lower-piers.ldr
+0 Author: OpenAI for this workspace
+0 !LDRAW_ORG Model
+0 // lower-0--50--50: load-bearing red corner pier; leave doorway open
+1 4 -50 -24 -50 1 0 0 0 1 0 0 0 1 3005.dat
+0 // lower-0-50--50: load-bearing red corner pier; leave doorway open
+1 4 50 -24 -50 1 0 0 0 1 0 0 0 1 3005.dat
+0 // lower-0--50-50: load-bearing red corner pier; leave doorway open
+1 4 -50 -24 50 1 0 0 0 1 0 0 0 1 3005.dat
+0 // lower-0-50-50: load-bearing red corner pier; leave doorway open
+1 4 50 -24 50 1 0 0 0 1 0 0 0 1 3005.dat
+0 STEP
+0 // lower-1--50--50: load-bearing red corner pier; leave doorway open
+1 4 -50 -48 -50 1 0 0 0 1 0 0 0 1 3005.dat
+0 // lower-1-50--50: load-bearing red corner pier; leave doorway open
+1 4 50 -48 -50 1 0 0 0 1 0 0 0 1 3005.dat
+0 // lower-1--50-50: load-bearing red corner pier; leave doorway open
+1 4 -50 -48 50 1 0 0 0 1 0 0 0 1 3005.dat
+0 // lower-1-50-50: load-bearing red corner pier; leave doorway open
+1 4 50 -48 50 1 0 0 0 1 0 0 0 1 3005.dat
+0 STEP
+0 // lower-2--50--50: load-bearing red corner pier; leave doorway open
+1 4 -50 -72 -50 1 0 0 0 1 0 0 0 1 3005.dat
+0 // lower-2-50--50: load-bearing red corner pier; leave doorway open
+1 4 50 -72 -50 1 0 0 0 1 0 0 0 1 3005.dat
+0 // lower-2--50-50: load-bearing red corner pier; leave doorway open
+1 4 -50 -72 50 1 0 0 0 1 0 0 0 1 3005.dat
+0 // lower-2-50-50: load-bearing red corner pier; leave doorway open
+1 4 50 -72 50 1 0 0 0 1 0 0 0 1 3005.dat
+0 NOFILE
+0 FILE ember-deck.ldr
+0 Bonded raised observation platform
+0 Name: ember-deck.ldr
+0 Author: OpenAI for this workspace
+0 !LDRAW_ORG Model
+0 // deck-slab--40: raised square observation floor
+1 72 0 0 -40 1 0 0 0 1 0 0 0 1 3035.dat
+0 // deck-slab-40: raised square observation floor
+1 72 0 0 40 1 0 0 0 1 0 0 0 1 3035.dat
+0 STEP
+0 // deck-stitch--40: lock the two halves of the deck
+1 0 -40 -8 0 1 0 0 0 1 0 0 0 1 3020.dat
+0 // deck-stitch-40: lock the two halves of the deck
+1 0 40 -8 0 1 0 0 0 1 0 0 0 1 3020.dat
+0 NOFILE
+0 FILE ember-upper-piers.ldr
+0 Four red open-air viewing posts
+0 Name: ember-upper-piers.ldr
+0 Author: OpenAI for this workspace
+0 !LDRAW_ORG Model
+0 // upper-0--50--50: open viewing level corner column
+1 4 -50 -24 -50 1 0 0 0 1 0 0 0 1 3005.dat
+0 // upper-0-50--50: open viewing level corner column
+1 4 50 -24 -50 1 0 0 0 1 0 0 0 1 3005.dat
+0 // upper-0--50-50: open viewing level corner column
+1 4 -50 -24 50 1 0 0 0 1 0 0 0 1 3005.dat
+0 // upper-0-50-50: open viewing level corner column
+1 4 50 -24 50 1 0 0 0 1 0 0 0 1 3005.dat
+0 STEP
+0 // upper-1--50--50: open viewing level corner column
+1 4 -50 -48 -50 1 0 0 0 1 0 0 0 1 3005.dat
+0 // upper-1-50--50: open viewing level corner column
+1 4 50 -48 -50 1 0 0 0 1 0 0 0 1 3005.dat
+0 // upper-1--50-50: open viewing level corner column
+1 4 -50 -48 50 1 0 0 0 1 0 0 0 1 3005.dat
+0 // upper-1-50-50: open viewing level corner column
+1 4 50 -48 50 1 0 0 0 1 0 0 0 1 3005.dat
+0 STEP
+0 // upper-2--50--50: open viewing level corner column
+1 4 -50 -72 -50 1 0 0 0 1 0 0 0 1 3005.dat
+0 // upper-2-50--50: open viewing level corner column
+1 4 50 -72 -50 1 0 0 0 1 0 0 0 1 3005.dat
+0 // upper-2--50-50: open viewing level corner column
+1 4 -50 -72 50 1 0 0 0 1 0 0 0 1 3005.dat
+0 // upper-2-50-50: open viewing level corner column
+1 4 50 -72 50 1 0 0 0 1 0 0 0 1 3005.dat
+0 NOFILE
+0 FILE ember-canopy.ldr
+0 Cross-bonded broad black pavilion canopy
+0 Name: ember-canopy.ldr
+0 Author: OpenAI for this workspace
+0 !LDRAW_ORG Model
+0 // roof-long--40--60: roof underside plate
+1 0 -40 0 -60 1 0 0 0 1 0 0 0 1 3020.dat
+0 // roof-long-40--60: roof underside plate
+1 0 40 0 -60 1 0 0 0 1 0 0 0 1 3020.dat
+0 // roof-long--40--20: roof underside plate
+1 0 -40 0 -20 1 0 0 0 1 0 0 0 1 3020.dat
+0 // roof-long-40--20: roof underside plate
+1 0 40 0 -20 1 0 0 0 1 0 0 0 1 3020.dat
+0 // roof-long--40-20: roof underside plate
+1 0 -40 0 20 1 0 0 0 1 0 0 0 1 3020.dat
+0 // roof-long-40-20: roof underside plate
+1 0 40 0 20 1 0 0 0 1 0 0 0 1 3020.dat
+0 // roof-long--40-60: roof underside plate
+1 0 -40 0 60 1 0 0 0 1 0 0 0 1 3020.dat
+0 // roof-long-40-60: roof underside plate
+1 0 40 0 60 1 0 0 0 1 0 0 0 1 3020.dat
+0 STEP
+0 // roof-cross--60--40: cross-bond roof plate seams
+1 0 -60 -8 -40 0 0 1 0 1 0 -1 0 0 3020.dat
+0 // roof-cross--60-40: cross-bond roof plate seams
+1 0 -60 -8 40 0 0 1 0 1 0 -1 0 0 3020.dat
+0 // roof-cross--20--40: cross-bond roof plate seams
+1 0 -20 -8 -40 0 0 1 0 1 0 -1 0 0 3020.dat
+0 // roof-cross--20-40: cross-bond roof plate seams
+1 0 -20 -8 40 0 0 1 0 1 0 -1 0 0 3020.dat
+0 // roof-cross-20--40: cross-bond roof plate seams
+1 0 20 -8 -40 0 0 1 0 1 0 -1 0 0 3020.dat
+0 // roof-cross-20-40: cross-bond roof plate seams
+1 0 20 -8 40 0 0 1 0 1 0 -1 0 0 3020.dat
+0 // roof-cross-60--40: cross-bond roof plate seams
+1 0 60 -8 -40 0 0 1 0 1 0 -1 0 0 3020.dat
+0 // roof-cross-60-40: cross-bond roof plate seams
+1 0 60 -8 40 0 0 1 0 1 0 -1 0 0 3020.dat
+0 STEP
+0 // roof-tile--60--60: alternating quiet black roof tile
+1 0 -60 -16 -60 1 0 0 0 1 0 0 0 1 3068b.dat
+0 // roof-tile--60-20: alternating quiet black roof tile
+1 0 -60 -16 20 1 0 0 0 1 0 0 0 1 3068b.dat
+0 // roof-tile--20--20: alternating quiet black roof tile
+1 0 -20 -16 -20 1 0 0 0 1 0 0 0 1 3068b.dat
+0 // roof-tile--20-60: alternating quiet black roof tile
+1 0 -20 -16 60 1 0 0 0 1 0 0 0 1 3068b.dat
+0 // roof-tile-20--60: alternating quiet black roof tile
+1 0 20 -16 -60 1 0 0 0 1 0 0 0 1 3068b.dat
+0 // roof-tile-20-20: alternating quiet black roof tile
+1 0 20 -16 20 1 0 0 0 1 0 0 0 1 3068b.dat
+0 // roof-tile-60--20: alternating quiet black roof tile
+1 0 60 -16 -20 1 0 0 0 1 0 0 0 1 3068b.dat
+0 // roof-tile-60-60: alternating quiet black roof tile
+1 0 60 -16 60 1 0 0 0 1 0 0 0 1 3068b.dat
+0 NOFILE

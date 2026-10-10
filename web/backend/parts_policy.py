@@ -20,6 +20,7 @@ POLICY_PROMPT = (
     "Search list_allowed_parts before choosing components and colors; output/allowed-parts.csv "
     "is also available to generators. The catalog's color_id is an LDraw ID. "
     "No custom geometry or custom colors. Honor max_quantity where supplied. "
+    "For JSON plans, use build --parts-palette output/allowed-parts.csv to reject violations before writing. "
     "Check candidates with check_model_parts and repair every violation. publish_model "
     "will refuse unavailable combinations. This policy also applies to all edits, including old models."
 )
@@ -52,6 +53,11 @@ class ChatPartsPolicy:
         return self.root / (chat_id + ".csv")
 
     def load(self, chat_id: str) -> PartsCatalog | None:
+        if self.path(chat_id).with_suffix(".disabled").exists():
+            return None
+        return self.available(chat_id)
+
+    def available(self, chat_id: str) -> PartsCatalog | None:
         path = self.path(chat_id)
         if not path.exists():
             path = self.default_catalog
@@ -70,7 +76,7 @@ class ChatPartsPolicy:
             temporary_path.replace(path)
         finally:
             temporary_path.unlink(missing_ok=True)
-        self._write_reference(store, chat_id, content)
+        self.set_enabled(store, chat_id, True)
         return catalog
 
     def _write_reference(self, store, chat_id: str, content: str) -> None:
@@ -85,6 +91,9 @@ class ChatPartsPolicy:
     def prepare(self, store, chat_id: str) -> bool:
         """Freeze the default for this chat and restore its convenient reference."""
         path = self.path(chat_id)
+        if path.with_suffix(".disabled").exists():
+            (store.work_dir(chat_id) / "allowed-parts.csv").unlink(missing_ok=True)
+            return False
         if not path.exists():
             if self.default_catalog is None:
                 return False
@@ -105,6 +114,35 @@ class ChatPartsPolicy:
         inventory = expanded_inventory(content, settings.TOOLKIT_DIR, settings.LDRAW_DIR)
         catalog.validate(inventory)
         return {"valid": True, "physical_parts": sum(inventory.values())}
+
+    def info(self, chat_id: str | None = None) -> dict:
+        catalog = self.available(chat_id) if chat_id else (
+            PartsCatalog.load(self.default_catalog) if self.default_catalog else None)
+        enabled = catalog is not None and (not chat_id or not self.path(chat_id).with_suffix(".disabled").exists())
+        return {"allowed_combinations": len(catalog.parts) if catalog else None,
+                "enabled": enabled, "default_available": self.default_catalog is not None}
+
+    def set_enabled(self, store, chat_id: str, enabled: bool) -> None:
+        """Retain the trusted palette while explicitly opting in or out per chat."""
+        path = self.path(chat_id)
+        marker = path.with_suffix(".disabled")
+        if enabled:
+            if self.available(chat_id) is None:
+                raise ValueError("Upload a parts palette before enabling the restriction")
+            marker.unlink(missing_ok=True)
+            self.prepare(store, chat_id)
+        else:
+            self.root.mkdir(mode=0o700, parents=True, exist_ok=True)
+            marker.touch(mode=0o600)
+            (store.work_dir(chat_id) / "allowed-parts.csv").unlink(missing_ok=True)
+
+    def clear(self, store, chat_id: str) -> None:
+        """Remove the upload and restore the server default, if configured."""
+        path = self.path(chat_id)
+        path.unlink(missing_ok=True)
+        path.with_suffix(".disabled").unlink(missing_ok=True)
+        (store.work_dir(chat_id) / "allowed-parts.csv").unlink(missing_ok=True)
+        self.prepare(store, chat_id)
 
 
 def expanded_inventory(content: bytes, toolkit_dir: Path, ldraw_dir: Path) -> dict:

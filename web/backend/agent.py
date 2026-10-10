@@ -226,6 +226,7 @@ async def start_turn(store: ChatStore, chat_id: str, text: str, llm_model_id: Op
     if is_running(chat_id):
         raise RuntimeError("this chat is already running a turn")
 
+    parts_policy.policy.prepare(store, chat_id)
     chat = store.get_chat(chat_id)
     if chat["title"] == "New chat":
         title = " ".join(text.split())

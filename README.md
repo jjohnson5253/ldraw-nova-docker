@@ -26,7 +26,8 @@ COMING SOON
 
 ## Configuration
 
-COMING SOON
+See [Parts palettes](docs/parts-palettes.md) to upload an allowed-parts CSV or
+configure a local default palette for the agent.
 
 ## Development
 
@@ -35,3 +36,17 @@ COMING SOON
 ## Acknowledgements
 
 COMING SOON
+
+
+## Choose an allowed-parts palette
+
+On New chat or in an idle chat, upload a CSV parts palette and select
+**Only use this parts palette**. The agent must honor exact LDraw part/color pairs
+and any quantity limits; publication rejects models outside the selected palette.
+Uncheck the option to use all library parts while retaining the uploaded palette.
+See [parts palettes](docs/parts-palettes.md) for the format, API and server defaults,
+and [the on/off example](examples/parts-palette/README.md) for the generated palette,
+models, inventory audit and screenshots.
+
+Build with the paired `ldraw-nova` **codex/selectable-parts-palette** branch until
+both companion PRs are included in a matching release.

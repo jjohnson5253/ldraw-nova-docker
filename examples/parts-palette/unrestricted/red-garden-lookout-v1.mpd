@@ -1,0 +1,99 @@
+0 FILE red-garden-lookout.ldr
+0 Red garden lookout with open front doorway, raised tan deck and tiered black canopy
+0 Name: red-garden-lookout.ldr
+0 Author: LDraw Nova
+0 !LDRAW_ORG Model
+0 // ground: green garden footprint
+1 2 0 0 0 1 0 0 0 1 0 0 0 1 3958.dat
+0 STEP
+0 // foot_-50_-50: red two-stud-square footing
+1 4 -50 -8 -50 1 0 0 0 1 0 0 0 1 3022.dat
+0 // leg_-50_-50: short sturdy pedestal leg
+1 4 -50 -32 -50 1 0 0 0 1 0 0 0 1 3003.dat
+0 // foot_-50_50: red two-stud-square footing
+1 4 -50 -8 50 1 0 0 0 1 0 0 0 1 3022.dat
+0 // leg_-50_50: short sturdy pedestal leg
+1 4 -50 -32 50 1 0 0 0 1 0 0 0 1 3003.dat
+0 // foot_50_-50: red two-stud-square footing
+1 4 50 -8 -50 1 0 0 0 1 0 0 0 1 3022.dat
+0 // leg_50_-50: short sturdy pedestal leg
+1 4 50 -32 -50 1 0 0 0 1 0 0 0 1 3003.dat
+0 // foot_50_50: red two-stud-square footing
+1 4 50 -8 50 1 0 0 0 1 0 0 0 1 3022.dat
+0 // leg_50_50: short sturdy pedestal leg
+1 4 50 -32 50 1 0 0 0 1 0 0 0 1 3003.dat
+0 STEP
+0 // deck: tan square elevated platform connects four legs
+1 19 0 -40 0 1 0 0 0 1 0 0 0 1 3958.dat
+0 // floor: centered 4x4 inset floor on deck
+1 19 0 -48 0 1 0 0 0 1 0 0 0 1 3031.dat
+0 STEP
+0 // post_-50_-50_0: red corner upright framing open views
+1 4 -50 -64 -50 1 0 0 0 1 0 0 0 1 3005.dat
+0 // post_-50_50_0: red corner upright framing open views
+1 4 -50 -64 50 1 0 0 0 1 0 0 0 1 3005.dat
+0 // post_50_-50_0: red corner upright framing open views
+1 4 50 -64 -50 1 0 0 0 1 0 0 0 1 3005.dat
+0 // post_50_50_0: red corner upright framing open views
+1 4 50 -64 50 1 0 0 0 1 0 0 0 1 3005.dat
+0 STEP
+0 // post_-50_-50_1: red corner upright framing open views
+1 4 -50 -88 -50 1 0 0 0 1 0 0 0 1 3005.dat
+0 // post_-50_50_1: red corner upright framing open views
+1 4 -50 -88 50 1 0 0 0 1 0 0 0 1 3005.dat
+0 // post_50_-50_1: red corner upright framing open views
+1 4 50 -88 -50 1 0 0 0 1 0 0 0 1 3005.dat
+0 // post_50_50_1: red corner upright framing open views
+1 4 50 -88 50 1 0 0 0 1 0 0 0 1 3005.dat
+0 // side_rail_-50: low side parapet between pillars
+1 4 -50 -64 0 0 0 1 0 1 0 -1 0 0 3010.dat
+0 // side_rail_50: low side parapet between pillars
+1 4 50 -64 0 0 0 1 0 1 0 -1 0 0 3010.dat
+0 // back_rail: low rear parapet; front doorway stays open
+1 4 0 -64 50 1 0 0 0 1 0 0 0 1 3010.dat
+0 STEP
+0 // post_-50_-50_2: red corner upright framing open views
+1 4 -50 -112 -50 1 0 0 0 1 0 0 0 1 3005.dat
+0 // post_-50_50_2: red corner upright framing open views
+1 4 -50 -112 50 1 0 0 0 1 0 0 0 1 3005.dat
+0 // post_50_-50_2: red corner upright framing open views
+1 4 50 -112 -50 1 0 0 0 1 0 0 0 1 3005.dat
+0 // post_50_50_2: red corner upright framing open views
+1 4 50 -112 50 1 0 0 0 1 0 0 0 1 3005.dat
+0 // post_-50_-50_3: fourth upright course adds airy doorway height
+1 4 -50 -136 -50 1 0 0 0 1 0 0 0 1 3005.dat
+0 // post_-50_50_3: fourth upright course adds airy doorway height
+1 4 -50 -136 50 1 0 0 0 1 0 0 0 1 3005.dat
+0 // post_50_-50_3: fourth upright course adds airy doorway height
+1 4 50 -136 -50 1 0 0 0 1 0 0 0 1 3005.dat
+0 // post_50_50_3: fourth upright course adds airy doorway height
+1 4 50 -136 50 1 0 0 0 1 0 0 0 1 3005.dat
+0 // capital_-50_-50: red capital ties roof to corner post
+1 4 -50 -144 -50 1 0 0 0 1 0 0 0 1 3022.dat
+0 // capital_-50_50: red capital ties roof to corner post
+1 4 -50 -144 50 1 0 0 0 1 0 0 0 1 3022.dat
+0 // capital_50_-50: red capital ties roof to corner post
+1 4 50 -144 -50 1 0 0 0 1 0 0 0 1 3022.dat
+0 // capital_50_50: red capital ties roof to corner post
+1 4 50 -144 50 1 0 0 0 1 0 0 0 1 3022.dat
+0 STEP
+0 // roof_base: black roof plate mates to all four pillar tops
+1 0 0 -152 0 1 0 0 0 1 0 0 0 1 3958.dat
+0 // roof_crown: raised roof plane leaves a broad eave
+1 0 0 -160 0 1 0 0 0 1 0 0 0 1 3031.dat
+0 // roof_peak: small central roof cap
+1 0 0 -168 0 1 0 0 0 1 0 0 0 1 3022.dat
+0 STEP
+0 // roof_trim_-30: black front eave detailing
+1 0 -30 -160 -50 1 0 0 0 1 0 0 0 1 3023b.dat
+0 // roof_trim_30: black front eave detailing
+1 0 30 -160 -50 1 0 0 0 1 0 0 0 1 3023b.dat
+0 // flower_stem_-30: garden planting at front of base
+1 28 -30 -8 -50 1 0 0 0 1 0 0 0 1 3062b.dat
+0 // flower_-30: yellow blossom on short green stem
+1 14 -30 -16 -50 1 0 0 0 1 0 0 0 1 6141.dat
+0 // flower_stem_30: garden planting at front of base
+1 28 30 -8 -50 1 0 0 0 1 0 0 0 1 3062b.dat
+0 // flower_30: yellow blossom on short green stem
+1 14 30 -16 -50 1 0 0 0 1 0 0 0 1 6141.dat
+0 NOFILE
