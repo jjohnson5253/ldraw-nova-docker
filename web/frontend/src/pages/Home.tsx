@@ -19,6 +19,8 @@ export default function Home() {
   const [example, setExample] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [paletteCsv, setPaletteCsv] = useState<string | null>(null);
+  const [starting, setStarting] = useState(false);
+  const [paletteEnabled, setPaletteEnabled] = useState(true);
   const [paletteBusy, setPaletteBusy] = useState(true);
 
   useEffect(() => {
@@ -27,15 +29,18 @@ export default function Home() {
 
   async function start(text: string, options: TurnOptions, images: string[], documents: DocumentUpload[]) {
     setError(null);
+    setStarting(true);
     try {
       if (paletteBusy) throw new Error('Wait for the palette to finish loading.');
-      const chat = await api.createChat(llmId, paletteCsv);
+      const chat = await api.createChat(llmId, paletteCsv, paletteEnabled);
       await api.send(chat.id, text, llmId, options, images, documents);
       refreshChats();
       navigate(`/chat/${chat.id}`);
     } catch (e) {
       setError((e as Error).message);
       throw e;
+    } finally {
+      setStarting(false);
     }
   }
 
@@ -56,13 +61,13 @@ export default function Home() {
         ))}
       </div>
       {error && <div className="banner error">{error}</div>}
-      <PartsPalette onChange={setPaletteCsv} onBusy={setPaletteBusy} />
+      <PartsPalette running={starting} onChange={setPaletteCsv} onSelection={setPaletteEnabled} onBusy={setPaletteBusy} />
       <Composer
         llmId={llmId}
         onLlmChange={setLlmId}
         onSend={start}
         running={false}
-        blocked={paletteBusy}
+        blocked={paletteBusy || starting}
         autoFocus
         initialText={example}
       />

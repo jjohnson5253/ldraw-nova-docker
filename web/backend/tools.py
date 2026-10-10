@@ -12,8 +12,6 @@ import asyncio
 import subprocess
 import inspect
 import hashlib
-import asyncio
-import subprocess
 import json
 import re
 import shutil
@@ -27,7 +25,6 @@ import sandbox
 import settings
 import parts_policy
 import toolkit
-import parts_policy
 import environment_config
 import gallery
 from leocad_render import bom_path_for, list_models, snapshot_path_for
@@ -223,6 +220,7 @@ async def t_publish_model(ctx: ToolContext, path: str, name: str | None = None) 
               "note": "Open the preview with view_image and complete visual review and compare-bom before final delivery."}
     if parts_report is not None:
         result["parts_palette"] = parts_report
+        result["parts_catalog"] = parts_report  # Compatibility for existing tool clients.
     if image.exists():
         result["preview"] = artifact_url(ctx, image)
         result["preview_path"] = str(image)

@@ -443,3 +443,7 @@ input:focus, select:focus, textarea:focus, button:focus-visible {
 .palette-status span { overflow-wrap: anywhere; font-size: 12px; }
 .palette-actions { display: flex; flex-wrap: wrap; gap: 6px; }
 .parts-palette .banner { margin-top: 10px; }
+
+.palette-toggle { display: flex; align-items: center; gap: 9px; margin: 10px 0 6px; cursor: pointer; font-weight: 600; }
+.palette-toggle input { width: 18px; height: 18px; flex: 0 0 auto; accent-color: var(--accent); }
+.palette-explanation { display: block; margin-bottom: 8px; line-height: 1.5; }

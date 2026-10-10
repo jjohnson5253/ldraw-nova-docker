@@ -182,3 +182,59 @@ def test_validate_and_example_do_not_change_a_chat_palette(configured):
     example = client.get('/api/parts-palette/example')
     assert example.headers['content-type'].startswith('text/csv')
     assert 'part_id,color_id,max_quantity' in example.text
+
+
+def test_selection_persists_without_losing_palette_and_controls_publication(configured, monkeypatch):
+    policy, store, chat = configured
+    monkeypatch.setattr(main, 'get_store', lambda: store)
+    monkeypatch.setattr(parts_policy, 'expanded_inventory', lambda *args: {('3001', 0): 1})
+    client = TestClient(main.app)
+    endpoint = '/api/chats/' + chat + '/parts-palette'
+    with pytest.raises(PartsUnavailable):
+        policy.validate_model(chat, MODEL)
+    disabled = client.patch(endpoint, json={'enabled': False})
+    assert disabled.status_code == 200
+    assert disabled.json()['enabled'] is False
+    assert disabled.json()['allowed_combinations'] == 1
+    assert policy.prepare(store, chat) is False
+    assert not (store.work_dir(chat) / 'allowed-parts.csv').exists()
+    assert policy.validate_model(chat, MODEL) is None
+    reloaded = parts_policy.ChatPartsPolicy(policy.root.parent)
+    assert reloaded.info(chat)['enabled'] is False
+    assert reloaded.available(chat).search()['total'] == 1
+    assert client.patch(endpoint, json={'enabled': True}).json()['enabled'] is True
+    assert policy.prepare(store, chat)
+    with pytest.raises(PartsUnavailable):
+        policy.validate_model(chat, MODEL)
+    monkeypatch.setattr(agent, 'is_running', lambda chat: True)
+    assert client.patch(endpoint, json={'enabled': False}).status_code == 409
+    assert client.delete(endpoint).status_code == 409
+    assert policy.info(chat)['enabled'] is True
+
+
+def test_new_chat_can_keep_an_uploaded_palette_disabled(configured, monkeypatch):
+    policy, store, _ = configured
+    monkeypatch.setattr(main, 'get_store', lambda: store)
+    client = TestClient(main.app)
+    chat = client.post('/api/chats', json={'parts_palette_csv': CATALOG, 'parts_palette_enabled': False}).json()['id']
+    assert policy.info(chat)['allowed_combinations'] == 1
+    assert policy.info(chat)['enabled'] is False
+    assert policy.validate_model(chat, MODEL) is None
+    assert client.patch('/api/chats/' + chat + '/parts-palette', json={'enabled': True}).status_code == 200
+    empty = store.create_chat()['id']
+    assert client.patch('/api/chats/' + empty + '/parts-palette', json={'enabled': True}).status_code == 400
+
+
+def test_default_palette_can_be_explicitly_disabled_and_reset(tmp_path, monkeypatch):
+    monkeypatch.setattr(parts_policy.sandbox, 'give_to_agent', lambda path: None)
+    default = tmp_path / 'default.csv'; default.write_text(CATALOG)
+    policy = parts_policy.ChatPartsPolicy(tmp_path / 'protected', default)
+    store = SimpleNamespace(work_dir=lambda chat: tmp_path / chat)
+    policy.set_enabled(store, 'chat', False)
+    assert policy.load('chat') is None
+    assert policy.info('chat')['allowed_combinations'] == 1
+    policy.set_enabled(store, 'chat', True)
+    assert policy.prepare(store, 'chat')
+    policy.set_enabled(store, 'chat', False)
+    policy.clear(store, 'chat')
+    assert policy.info('chat')['enabled'] is True

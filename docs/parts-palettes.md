@@ -11,8 +11,9 @@ Existing chats also offer **Upload palette** or **Replace palette** above the
 message composer. Changes are allowed only while the chat is idle. An invalid
 replacement leaves the previous palette active.
 
-Choose **Use all parts** to remove a chat restriction. If the server has a default
-palette, the button is **Use default parts** and restores that default instead.
+Uncheck **Only use this parts palette** to use all library parts while keeping your
+palette saved. **Remove palette** deletes the uploaded selection. If the server has
+a default palette, **Reset to default** restores that default instead.
 Palette changes apply to future turns and publications, including edits to older
 models. They do not rewrite models already published.
 
@@ -57,10 +58,10 @@ later changes to the default do not change that chat's snapshot.
 ## How the restriction works
 
 `parts_catalog.py` parses and searches generic palettes and validates quantities.
-`parts_inventory.py` uses the existing toolkit to expand MPD submodels into
+`ldraw_tools.catalog_inventory` expands MPD submodels into
 physical occurrences, resolving inherited colors and repeated instances.
-`parts_policy.py` manages per-chat snapshots and model validation. The parent
-toolkit needs no modifications.
+`parts_policy.py` manages per-chat snapshots and model validation. Build the paired
+core branch for strict physical-part checks and the CLI generation option.
 
 The shared agent prompt requires palette use. `list_allowed_parts` offers
 paginated search, and `check_model_parts` lets the agent check a candidate before
@@ -84,3 +85,24 @@ API clients can pass `parts_palette_csv` when creating a chat, validate CSV with
 `GET`, `PUT` (`{"csv": "..."}`), or `DELETE`
 `/api/chats/{chat_id}/parts-palette`. Palette mutation retains the app's existing
 same-origin protection and rejects changes during a running turn with HTTP 409.
+
+
+## Enable or disable the restriction
+
+After uploading, **Only use this parts palette** is selected. Uncheck it to generate
+with all library parts; the uploaded palette stays saved, and can be enabled again.
+The selection persists after reloading a chat. Uploading a replacement enables it.
+Changing the palette, removing it, or changing the switch is blocked during a turn.
+The switch controls both generation guidance and the mandatory publication check.
+A server default can also be disabled explicitly for that chat.
+
+New chats accept `parts_palette_enabled` (defaults to true for compatibility).
+`PATCH /api/chats/{chat_id}/parts-palette` accepts `{"enabled": false}` or true.
+The GET response reports `enabled` and the saved palette's `allowed_combinations`.
+The legacy PUT `parts-catalog` endpoint remains available.
+
+Use the paired `ldraw-nova` branch for the `build --parts-palette CSV` generation
+option and strict physical-part checks. JSON-plan builds check the palette before
+writing; all publications, including Python-generated MPDs, are checked against
+the protected per-chat palette. See `examples/parts-palette` for the generated
+palette and the real on/off demonstration.

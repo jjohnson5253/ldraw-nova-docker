@@ -291,6 +291,7 @@ def llm_provider_models(provider: str):
 # --- chats -------------------------------------------------------------------
 
 class NewChat(BaseModel):
+    parts_palette_enabled: bool = True
     llm_model_id: Optional[str] = None
     parts_palette_csv: Optional[str] = Field(default=None, min_length=1, max_length=16 * 1024 * 1024)
 
@@ -413,6 +414,8 @@ def chats_create(body: NewChat):
     chat = store.create_chat(llm_model_id=body.llm_model_id)
     if body.parts_palette_csv is not None:
         parts_policy.policy.configure(store, chat["id"], body.parts_palette_csv)
+    if not body.parts_palette_enabled:
+        parts_policy.policy.set_enabled(store, chat["id"], False)
     return chat
 
 
@@ -438,7 +441,7 @@ async def validate_parts_palette(body: PartsPaletteRequest):
     except ValueError as exc:
         raise HTTPException(400, str(exc)) from None
     return {"allowed_combinations": len(palette.parts),
-            "default_available": parts_policy.policy.default_catalog is not None}
+            "enabled": True, "default_available": parts_policy.policy.default_catalog is not None}
 
 
 @app.get('/api/chats/{chat_id}/parts-palette')
@@ -456,11 +459,24 @@ def palette_edit_store(chat_id: str):
 
 
 @app.put('/api/chats/{chat_id}/parts-palette')
-@app.put('/api/chats/{chat_id}/parts-catalog')
 async def configure_parts_palette(chat_id: str, body: PartsPaletteRequest):
     store = palette_edit_store(chat_id)
     try:
         parts_policy.policy.configure(store, chat_id, body.csv)
+    except ValueError as exc:
+        raise HTTPException(400, str(exc)) from None
+    return parts_policy.policy.info(chat_id)
+
+
+class PartsPaletteSelection(BaseModel):
+    enabled: bool
+
+
+@app.patch('/api/chats/{chat_id}/parts-palette')
+async def select_parts_palette(chat_id: str, body: PartsPaletteSelection):
+    store = palette_edit_store(chat_id)
+    try:
+        parts_policy.policy.set_enabled(store, chat_id, body.enabled)
     except ValueError as exc:
         raise HTTPException(400, str(exc)) from None
     return parts_policy.policy.info(chat_id)
