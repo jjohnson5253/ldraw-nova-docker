@@ -1,0 +1,6 @@
+{
+  "source_sha256": "3da2f28edffcf10b0965624536a4ba8dac562de40fbd9c6bbac7540428ec50e2",
+  "blocked": true,
+  "generated_models_unchanged": true,
+  "error": "Palette validation blocked publication. Run check_model_parts, repair the unavailable parts or colors, and publish again."
+}

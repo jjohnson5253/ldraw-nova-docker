@@ -1,0 +1,128 @@
+{
+  "palette": "garden-tower.csv",
+  "allowed_combinations": 9,
+  "restricted": {
+    "file": "ember-garden-lookout-v1.mpd",
+    "sha256": "e2558ff1e90754629c10d399f6acdb2894b0f3d59ca6a487e87b7c07a1c0b221",
+    "physical_parts": 56,
+    "distinct_pairs": 4,
+    "outside_palette_parts": 0,
+    "palette_valid": true,
+    "error": null,
+    "inventory": [
+      {
+        "part_id": "3005",
+        "color_id": 4,
+        "quantity": 24,
+        "in_palette": true
+      },
+      {
+        "part_id": "3020",
+        "color_id": 0,
+        "quantity": 20,
+        "in_palette": true
+      },
+      {
+        "part_id": "3035",
+        "color_id": 72,
+        "quantity": 4,
+        "in_palette": true
+      },
+      {
+        "part_id": "3068b",
+        "color_id": 0,
+        "quantity": 8,
+        "in_palette": true
+      }
+    ]
+  },
+  "unrestricted": {
+    "file": "red-garden-lookout-v1.mpd",
+    "sha256": "3da2f28edffcf10b0965624536a4ba8dac562de40fbd9c6bbac7540428ec50e2",
+    "physical_parts": 43,
+    "distinct_pairs": 13,
+    "outside_palette_parts": 23,
+    "palette_valid": false,
+    "error": "Parts unavailable in the allowed catalog: 3958.dat color 2 (x1); 3022.dat color 4 (x8); 3958.dat color 19 (x1); 3031.dat color 19 (x1); 3010.dat color 4 (x3); 3958.dat color 0 (x1); 3031.dat color 0 (x1); 3022.dat color 0 (x1); 3023b.dat color 0 (x2); 3062b.dat color 28 (x2); 6141.dat color 14 (x2)",
+    "inventory": [
+      {
+        "part_id": "3003",
+        "color_id": 4,
+        "quantity": 4,
+        "in_palette": true
+      },
+      {
+        "part_id": "3005",
+        "color_id": 4,
+        "quantity": 16,
+        "in_palette": true
+      },
+      {
+        "part_id": "3010",
+        "color_id": 4,
+        "quantity": 3,
+        "in_palette": false
+      },
+      {
+        "part_id": "3022",
+        "color_id": 0,
+        "quantity": 1,
+        "in_palette": false
+      },
+      {
+        "part_id": "3022",
+        "color_id": 4,
+        "quantity": 8,
+        "in_palette": false
+      },
+      {
+        "part_id": "3023b",
+        "color_id": 0,
+        "quantity": 2,
+        "in_palette": false
+      },
+      {
+        "part_id": "3031",
+        "color_id": 0,
+        "quantity": 1,
+        "in_palette": false
+      },
+      {
+        "part_id": "3031",
+        "color_id": 19,
+        "quantity": 1,
+        "in_palette": false
+      },
+      {
+        "part_id": "3062b",
+        "color_id": 28,
+        "quantity": 2,
+        "in_palette": false
+      },
+      {
+        "part_id": "3958",
+        "color_id": 0,
+        "quantity": 1,
+        "in_palette": false
+      },
+      {
+        "part_id": "3958",
+        "color_id": 2,
+        "quantity": 1,
+        "in_palette": false
+      },
+      {
+        "part_id": "3958",
+        "color_id": 19,
+        "quantity": 1,
+        "in_palette": false
+      },
+      {
+        "part_id": "6141",
+        "color_id": 14,
+        "quantity": 2,
+        "in_palette": false
+      }
+    ]
+  }
+}

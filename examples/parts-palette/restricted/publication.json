@@ -1,0 +1,13 @@
+{
+  "model_url": "/files/generated/ember-garden-lookout-v1.mpd",
+  "sha256": "e2558ff1e90754629c10d399f6acdb2894b0f3d59ca6a487e87b7c07a1c0b221",
+  "checks_passed": true,
+  "parts_palette": {
+    "valid": true,
+    "physical_parts": 56
+  },
+  "physical_validity": "not_proven",
+  "warnings": [
+    "Physical buildability is not proven; read the validation and visual review reports."
+  ]
+}

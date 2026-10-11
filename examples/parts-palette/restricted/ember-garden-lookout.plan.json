@@ -1,0 +1,757 @@
+{
+  "version": 1,
+  "author": "OpenAI for this workspace",
+  "sections": [
+    {
+      "name": "ember-garden-lookout.ldr",
+      "description": "Ember Garden Lookout - open red tower with black canopy",
+      "steps": [
+        [
+          {
+            "id": "footing",
+            "ref": "ember-ground.ldr",
+            "colour": 16,
+            "at": [
+              0,
+              0,
+              0
+            ],
+            "purpose": "ground foundation"
+          }
+        ],
+        [
+          {
+            "id": "portal",
+            "ref": "ember-lower-piers.ldr",
+            "colour": 16,
+            "at": [
+              0,
+              0,
+              0
+            ],
+            "purpose": "four supports leaving front doorway unobstructed"
+          }
+        ],
+        [
+          {
+            "id": "deck",
+            "ref": "ember-deck.ldr",
+            "colour": 16,
+            "at": [
+              0,
+              -80,
+              0
+            ],
+            "purpose": "raised viewing platform seated on the lower posts"
+          }
+        ],
+        [
+          {
+            "id": "posts",
+            "ref": "ember-upper-piers.ldr",
+            "colour": 16,
+            "at": [
+              0,
+              -80,
+              0
+            ],
+            "purpose": "four viewing posts"
+          }
+        ],
+        [
+          {
+            "id": "canopy",
+            "ref": "ember-canopy.ldr",
+            "colour": 16,
+            "at": [
+              0,
+              -160,
+              0
+            ],
+            "purpose": "sheltering bonded black roof"
+          }
+        ]
+      ]
+    },
+    {
+      "name": "ember-ground.ldr",
+      "description": "Square grey footing with bonded center seam",
+      "steps": [
+        [
+          {
+            "id": "ground--40",
+            "ref": "3035.dat",
+            "colour": 72,
+            "at": [
+              0,
+              0,
+              -40
+            ],
+            "purpose": "ground slab"
+          },
+          {
+            "id": "ground-40",
+            "ref": "3035.dat",
+            "colour": 72,
+            "at": [
+              0,
+              0,
+              40
+            ],
+            "purpose": "ground slab"
+          }
+        ],
+        [
+          {
+            "id": "ground-stitch--40",
+            "ref": "3020.dat",
+            "colour": 0,
+            "at": [
+              -40,
+              -8,
+              0
+            ],
+            "purpose": "bridge both ground slabs"
+          },
+          {
+            "id": "ground-stitch-40",
+            "ref": "3020.dat",
+            "colour": 0,
+            "at": [
+              40,
+              -8,
+              0
+            ],
+            "purpose": "bridge both ground slabs"
+          }
+        ]
+      ]
+    },
+    {
+      "name": "ember-lower-piers.ldr",
+      "description": "Four open portal supports",
+      "steps": [
+        [
+          {
+            "id": "lower-0--50--50",
+            "ref": "3005.dat",
+            "colour": 4,
+            "at": [
+              -50,
+              -24,
+              -50
+            ],
+            "purpose": "load-bearing red corner pier; leave doorway open"
+          },
+          {
+            "id": "lower-0-50--50",
+            "ref": "3005.dat",
+            "colour": 4,
+            "at": [
+              50,
+              -24,
+              -50
+            ],
+            "purpose": "load-bearing red corner pier; leave doorway open"
+          },
+          {
+            "id": "lower-0--50-50",
+            "ref": "3005.dat",
+            "colour": 4,
+            "at": [
+              -50,
+              -24,
+              50
+            ],
+            "purpose": "load-bearing red corner pier; leave doorway open"
+          },
+          {
+            "id": "lower-0-50-50",
+            "ref": "3005.dat",
+            "colour": 4,
+            "at": [
+              50,
+              -24,
+              50
+            ],
+            "purpose": "load-bearing red corner pier; leave doorway open"
+          }
+        ],
+        [
+          {
+            "id": "lower-1--50--50",
+            "ref": "3005.dat",
+            "colour": 4,
+            "at": [
+              -50,
+              -48,
+              -50
+            ],
+            "purpose": "load-bearing red corner pier; leave doorway open"
+          },
+          {
+            "id": "lower-1-50--50",
+            "ref": "3005.dat",
+            "colour": 4,
+            "at": [
+              50,
+              -48,
+              -50
+            ],
+            "purpose": "load-bearing red corner pier; leave doorway open"
+          },
+          {
+            "id": "lower-1--50-50",
+            "ref": "3005.dat",
+            "colour": 4,
+            "at": [
+              -50,
+              -48,
+              50
+            ],
+            "purpose": "load-bearing red corner pier; leave doorway open"
+          },
+          {
+            "id": "lower-1-50-50",
+            "ref": "3005.dat",
+            "colour": 4,
+            "at": [
+              50,
+              -48,
+              50
+            ],
+            "purpose": "load-bearing red corner pier; leave doorway open"
+          }
+        ],
+        [
+          {
+            "id": "lower-2--50--50",
+            "ref": "3005.dat",
+            "colour": 4,
+            "at": [
+              -50,
+              -72,
+              -50
+            ],
+            "purpose": "load-bearing red corner pier; leave doorway open"
+          },
+          {
+            "id": "lower-2-50--50",
+            "ref": "3005.dat",
+            "colour": 4,
+            "at": [
+              50,
+              -72,
+              -50
+            ],
+            "purpose": "load-bearing red corner pier; leave doorway open"
+          },
+          {
+            "id": "lower-2--50-50",
+            "ref": "3005.dat",
+            "colour": 4,
+            "at": [
+              -50,
+              -72,
+              50
+            ],
+            "purpose": "load-bearing red corner pier; leave doorway open"
+          },
+          {
+            "id": "lower-2-50-50",
+            "ref": "3005.dat",
+            "colour": 4,
+            "at": [
+              50,
+              -72,
+              50
+            ],
+            "purpose": "load-bearing red corner pier; leave doorway open"
+          }
+        ]
+      ]
+    },
+    {
+      "name": "ember-deck.ldr",
+      "description": "Bonded raised observation platform",
+      "steps": [
+        [
+          {
+            "id": "deck-slab--40",
+            "ref": "3035.dat",
+            "colour": 72,
+            "at": [
+              0,
+              0,
+              -40
+            ],
+            "purpose": "raised square observation floor"
+          },
+          {
+            "id": "deck-slab-40",
+            "ref": "3035.dat",
+            "colour": 72,
+            "at": [
+              0,
+              0,
+              40
+            ],
+            "purpose": "raised square observation floor"
+          }
+        ],
+        [
+          {
+            "id": "deck-stitch--40",
+            "ref": "3020.dat",
+            "colour": 0,
+            "at": [
+              -40,
+              -8,
+              0
+            ],
+            "purpose": "lock the two halves of the deck"
+          },
+          {
+            "id": "deck-stitch-40",
+            "ref": "3020.dat",
+            "colour": 0,
+            "at": [
+              40,
+              -8,
+              0
+            ],
+            "purpose": "lock the two halves of the deck"
+          }
+        ]
+      ]
+    },
+    {
+      "name": "ember-upper-piers.ldr",
+      "description": "Four red open-air viewing posts",
+      "steps": [
+        [
+          {
+            "id": "upper-0--50--50",
+            "ref": "3005.dat",
+            "colour": 4,
+            "at": [
+              -50,
+              -24,
+              -50
+            ],
+            "purpose": "open viewing level corner column"
+          },
+          {
+            "id": "upper-0-50--50",
+            "ref": "3005.dat",
+            "colour": 4,
+            "at": [
+              50,
+              -24,
+              -50
+            ],
+            "purpose": "open viewing level corner column"
+          },
+          {
+            "id": "upper-0--50-50",
+            "ref": "3005.dat",
+            "colour": 4,
+            "at": [
+              -50,
+              -24,
+              50
+            ],
+            "purpose": "open viewing level corner column"
+          },
+          {
+            "id": "upper-0-50-50",
+            "ref": "3005.dat",
+            "colour": 4,
+            "at": [
+              50,
+              -24,
+              50
+            ],
+            "purpose": "open viewing level corner column"
+          }
+        ],
+        [
+          {
+            "id": "upper-1--50--50",
+            "ref": "3005.dat",
+            "colour": 4,
+            "at": [
+              -50,
+              -48,
+              -50
+            ],
+            "purpose": "open viewing level corner column"
+          },
+          {
+            "id": "upper-1-50--50",
+            "ref": "3005.dat",
+            "colour": 4,
+            "at": [
+              50,
+              -48,
+              -50
+            ],
+            "purpose": "open viewing level corner column"
+          },
+          {
+            "id": "upper-1--50-50",
+            "ref": "3005.dat",
+            "colour": 4,
+            "at": [
+              -50,
+              -48,
+              50
+            ],
+            "purpose": "open viewing level corner column"
+          },
+          {
+            "id": "upper-1-50-50",
+            "ref": "3005.dat",
+            "colour": 4,
+            "at": [
+              50,
+              -48,
+              50
+            ],
+            "purpose": "open viewing level corner column"
+          }
+        ],
+        [
+          {
+            "id": "upper-2--50--50",
+            "ref": "3005.dat",
+            "colour": 4,
+            "at": [
+              -50,
+              -72,
+              -50
+            ],
+            "purpose": "open viewing level corner column"
+          },
+          {
+            "id": "upper-2-50--50",
+            "ref": "3005.dat",
+            "colour": 4,
+            "at": [
+              50,
+              -72,
+              -50
+            ],
+            "purpose": "open viewing level corner column"
+          },
+          {
+            "id": "upper-2--50-50",
+            "ref": "3005.dat",
+            "colour": 4,
+            "at": [
+              -50,
+              -72,
+              50
+            ],
+            "purpose": "open viewing level corner column"
+          },
+          {
+            "id": "upper-2-50-50",
+            "ref": "3005.dat",
+            "colour": 4,
+            "at": [
+              50,
+              -72,
+              50
+            ],
+            "purpose": "open viewing level corner column"
+          }
+        ]
+      ]
+    },
+    {
+      "name": "ember-canopy.ldr",
+      "description": "Cross-bonded broad black pavilion canopy",
+      "steps": [
+        [
+          {
+            "id": "roof-long--40--60",
+            "ref": "3020.dat",
+            "colour": 0,
+            "at": [
+              -40,
+              0,
+              -60
+            ],
+            "purpose": "roof underside plate"
+          },
+          {
+            "id": "roof-long-40--60",
+            "ref": "3020.dat",
+            "colour": 0,
+            "at": [
+              40,
+              0,
+              -60
+            ],
+            "purpose": "roof underside plate"
+          },
+          {
+            "id": "roof-long--40--20",
+            "ref": "3020.dat",
+            "colour": 0,
+            "at": [
+              -40,
+              0,
+              -20
+            ],
+            "purpose": "roof underside plate"
+          },
+          {
+            "id": "roof-long-40--20",
+            "ref": "3020.dat",
+            "colour": 0,
+            "at": [
+              40,
+              0,
+              -20
+            ],
+            "purpose": "roof underside plate"
+          },
+          {
+            "id": "roof-long--40-20",
+            "ref": "3020.dat",
+            "colour": 0,
+            "at": [
+              -40,
+              0,
+              20
+            ],
+            "purpose": "roof underside plate"
+          },
+          {
+            "id": "roof-long-40-20",
+            "ref": "3020.dat",
+            "colour": 0,
+            "at": [
+              40,
+              0,
+              20
+            ],
+            "purpose": "roof underside plate"
+          },
+          {
+            "id": "roof-long--40-60",
+            "ref": "3020.dat",
+            "colour": 0,
+            "at": [
+              -40,
+              0,
+              60
+            ],
+            "purpose": "roof underside plate"
+          },
+          {
+            "id": "roof-long-40-60",
+            "ref": "3020.dat",
+            "colour": 0,
+            "at": [
+              40,
+              0,
+              60
+            ],
+            "purpose": "roof underside plate"
+          }
+        ],
+        [
+          {
+            "id": "roof-cross--60--40",
+            "ref": "3020.dat",
+            "colour": 0,
+            "at": [
+              -60,
+              -8,
+              -40
+            ],
+            "purpose": "cross-bond roof plate seams",
+            "yaw": 90
+          },
+          {
+            "id": "roof-cross--60-40",
+            "ref": "3020.dat",
+            "colour": 0,
+            "at": [
+              -60,
+              -8,
+              40
+            ],
+            "purpose": "cross-bond roof plate seams",
+            "yaw": 90
+          },
+          {
+            "id": "roof-cross--20--40",
+            "ref": "3020.dat",
+            "colour": 0,
+            "at": [
+              -20,
+              -8,
+              -40
+            ],
+            "purpose": "cross-bond roof plate seams",
+            "yaw": 90
+          },
+          {
+            "id": "roof-cross--20-40",
+            "ref": "3020.dat",
+            "colour": 0,
+            "at": [
+              -20,
+              -8,
+              40
+            ],
+            "purpose": "cross-bond roof plate seams",
+            "yaw": 90
+          },
+          {
+            "id": "roof-cross-20--40",
+            "ref": "3020.dat",
+            "colour": 0,
+            "at": [
+              20,
+              -8,
+              -40
+            ],
+            "purpose": "cross-bond roof plate seams",
+            "yaw": 90
+          },
+          {
+            "id": "roof-cross-20-40",
+            "ref": "3020.dat",
+            "colour": 0,
+            "at": [
+              20,
+              -8,
+              40
+            ],
+            "purpose": "cross-bond roof plate seams",
+            "yaw": 90
+          },
+          {
+            "id": "roof-cross-60--40",
+            "ref": "3020.dat",
+            "colour": 0,
+            "at": [
+              60,
+              -8,
+              -40
+            ],
+            "purpose": "cross-bond roof plate seams",
+            "yaw": 90
+          },
+          {
+            "id": "roof-cross-60-40",
+            "ref": "3020.dat",
+            "colour": 0,
+            "at": [
+              60,
+              -8,
+              40
+            ],
+            "purpose": "cross-bond roof plate seams",
+            "yaw": 90
+          }
+        ],
+        [
+          {
+            "id": "roof-tile--60--60",
+            "ref": "3068b.dat",
+            "colour": 0,
+            "at": [
+              -60,
+              -16,
+              -60
+            ],
+            "purpose": "alternating quiet black roof tile"
+          },
+          {
+            "id": "roof-tile--60-20",
+            "ref": "3068b.dat",
+            "colour": 0,
+            "at": [
+              -60,
+              -16,
+              20
+            ],
+            "purpose": "alternating quiet black roof tile"
+          },
+          {
+            "id": "roof-tile--20--20",
+            "ref": "3068b.dat",
+            "colour": 0,
+            "at": [
+              -20,
+              -16,
+              -20
+            ],
+            "purpose": "alternating quiet black roof tile"
+          },
+          {
+            "id": "roof-tile--20-60",
+            "ref": "3068b.dat",
+            "colour": 0,
+            "at": [
+              -20,
+              -16,
+              60
+            ],
+            "purpose": "alternating quiet black roof tile"
+          },
+          {
+            "id": "roof-tile-20--60",
+            "ref": "3068b.dat",
+            "colour": 0,
+            "at": [
+              20,
+              -16,
+              -60
+            ],
+            "purpose": "alternating quiet black roof tile"
+          },
+          {
+            "id": "roof-tile-20-20",
+            "ref": "3068b.dat",
+            "colour": 0,
+            "at": [
+              20,
+              -16,
+              20
+            ],
+            "purpose": "alternating quiet black roof tile"
+          },
+          {
+            "id": "roof-tile-60--20",
+            "ref": "3068b.dat",
+            "colour": 0,
+            "at": [
+              60,
+              -16,
+              -20
+            ],
+            "purpose": "alternating quiet black roof tile"
+          },
+          {
+            "id": "roof-tile-60-60",
+            "ref": "3068b.dat",
+            "colour": 0,
+            "at": [
+              60,
+              -16,
+              60
+            ],
+            "purpose": "alternating quiet black roof tile"
+          }
+        ]
+      ]
+    }
+  ]
+}

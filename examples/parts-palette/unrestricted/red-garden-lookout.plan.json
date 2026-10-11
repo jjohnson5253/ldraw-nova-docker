@@ -1,0 +1,503 @@
+{
+  "version": 1,
+  "author": "LDraw Nova",
+  "sections": [
+    {
+      "name": "red-garden-lookout.ldr",
+      "description": "Red garden lookout with open front doorway, raised tan deck and tiered black canopy",
+      "steps": [
+        [
+          {
+            "id": "ground",
+            "ref": "3958.dat",
+            "colour": 2,
+            "at": [
+              0,
+              0,
+              0
+            ],
+            "purpose": "green garden footprint"
+          }
+        ],
+        [
+          {
+            "id": "foot_-50_-50",
+            "ref": "3022.dat",
+            "colour": 4,
+            "at": [
+              -50,
+              -8,
+              -50
+            ],
+            "purpose": "red two-stud-square footing"
+          },
+          {
+            "id": "leg_-50_-50",
+            "ref": "3003.dat",
+            "colour": 4,
+            "at": [
+              -50,
+              -32,
+              -50
+            ],
+            "purpose": "short sturdy pedestal leg"
+          },
+          {
+            "id": "foot_-50_50",
+            "ref": "3022.dat",
+            "colour": 4,
+            "at": [
+              -50,
+              -8,
+              50
+            ],
+            "purpose": "red two-stud-square footing"
+          },
+          {
+            "id": "leg_-50_50",
+            "ref": "3003.dat",
+            "colour": 4,
+            "at": [
+              -50,
+              -32,
+              50
+            ],
+            "purpose": "short sturdy pedestal leg"
+          },
+          {
+            "id": "foot_50_-50",
+            "ref": "3022.dat",
+            "colour": 4,
+            "at": [
+              50,
+              -8,
+              -50
+            ],
+            "purpose": "red two-stud-square footing"
+          },
+          {
+            "id": "leg_50_-50",
+            "ref": "3003.dat",
+            "colour": 4,
+            "at": [
+              50,
+              -32,
+              -50
+            ],
+            "purpose": "short sturdy pedestal leg"
+          },
+          {
+            "id": "foot_50_50",
+            "ref": "3022.dat",
+            "colour": 4,
+            "at": [
+              50,
+              -8,
+              50
+            ],
+            "purpose": "red two-stud-square footing"
+          },
+          {
+            "id": "leg_50_50",
+            "ref": "3003.dat",
+            "colour": 4,
+            "at": [
+              50,
+              -32,
+              50
+            ],
+            "purpose": "short sturdy pedestal leg"
+          }
+        ],
+        [
+          {
+            "id": "deck",
+            "ref": "3958.dat",
+            "colour": 19,
+            "at": [
+              0,
+              -40,
+              0
+            ],
+            "purpose": "tan square elevated platform connects four legs"
+          },
+          {
+            "id": "floor",
+            "ref": "3031.dat",
+            "colour": 19,
+            "at": [
+              0,
+              -48,
+              0
+            ],
+            "purpose": "centered 4x4 inset floor on deck"
+          }
+        ],
+        [
+          {
+            "id": "post_-50_-50_0",
+            "ref": "3005.dat",
+            "colour": 4,
+            "at": [
+              -50,
+              -64,
+              -50
+            ],
+            "purpose": "red corner upright framing open views"
+          },
+          {
+            "id": "post_-50_50_0",
+            "ref": "3005.dat",
+            "colour": 4,
+            "at": [
+              -50,
+              -64,
+              50
+            ],
+            "purpose": "red corner upright framing open views"
+          },
+          {
+            "id": "post_50_-50_0",
+            "ref": "3005.dat",
+            "colour": 4,
+            "at": [
+              50,
+              -64,
+              -50
+            ],
+            "purpose": "red corner upright framing open views"
+          },
+          {
+            "id": "post_50_50_0",
+            "ref": "3005.dat",
+            "colour": 4,
+            "at": [
+              50,
+              -64,
+              50
+            ],
+            "purpose": "red corner upright framing open views"
+          }
+        ],
+        [
+          {
+            "id": "post_-50_-50_1",
+            "ref": "3005.dat",
+            "colour": 4,
+            "at": [
+              -50,
+              -88,
+              -50
+            ],
+            "purpose": "red corner upright framing open views"
+          },
+          {
+            "id": "post_-50_50_1",
+            "ref": "3005.dat",
+            "colour": 4,
+            "at": [
+              -50,
+              -88,
+              50
+            ],
+            "purpose": "red corner upright framing open views"
+          },
+          {
+            "id": "post_50_-50_1",
+            "ref": "3005.dat",
+            "colour": 4,
+            "at": [
+              50,
+              -88,
+              -50
+            ],
+            "purpose": "red corner upright framing open views"
+          },
+          {
+            "id": "post_50_50_1",
+            "ref": "3005.dat",
+            "colour": 4,
+            "at": [
+              50,
+              -88,
+              50
+            ],
+            "purpose": "red corner upright framing open views"
+          },
+          {
+            "id": "side_rail_-50",
+            "ref": "3010.dat",
+            "colour": 4,
+            "at": [
+              -50,
+              -64,
+              0
+            ],
+            "purpose": "low side parapet between pillars",
+            "yaw": 90
+          },
+          {
+            "id": "side_rail_50",
+            "ref": "3010.dat",
+            "colour": 4,
+            "at": [
+              50,
+              -64,
+              0
+            ],
+            "purpose": "low side parapet between pillars",
+            "yaw": 90
+          },
+          {
+            "id": "back_rail",
+            "ref": "3010.dat",
+            "colour": 4,
+            "at": [
+              0,
+              -64,
+              50
+            ],
+            "purpose": "low rear parapet; front doorway stays open"
+          }
+        ],
+        [
+          {
+            "id": "post_-50_-50_2",
+            "ref": "3005.dat",
+            "colour": 4,
+            "at": [
+              -50,
+              -112,
+              -50
+            ],
+            "purpose": "red corner upright framing open views"
+          },
+          {
+            "id": "post_-50_50_2",
+            "ref": "3005.dat",
+            "colour": 4,
+            "at": [
+              -50,
+              -112,
+              50
+            ],
+            "purpose": "red corner upright framing open views"
+          },
+          {
+            "id": "post_50_-50_2",
+            "ref": "3005.dat",
+            "colour": 4,
+            "at": [
+              50,
+              -112,
+              -50
+            ],
+            "purpose": "red corner upright framing open views"
+          },
+          {
+            "id": "post_50_50_2",
+            "ref": "3005.dat",
+            "colour": 4,
+            "at": [
+              50,
+              -112,
+              50
+            ],
+            "purpose": "red corner upright framing open views"
+          },
+          {
+            "id": "post_-50_-50_3",
+            "ref": "3005.dat",
+            "colour": 4,
+            "at": [
+              -50,
+              -136,
+              -50
+            ],
+            "purpose": "fourth upright course adds airy doorway height"
+          },
+          {
+            "id": "post_-50_50_3",
+            "ref": "3005.dat",
+            "colour": 4,
+            "at": [
+              -50,
+              -136,
+              50
+            ],
+            "purpose": "fourth upright course adds airy doorway height"
+          },
+          {
+            "id": "post_50_-50_3",
+            "ref": "3005.dat",
+            "colour": 4,
+            "at": [
+              50,
+              -136,
+              -50
+            ],
+            "purpose": "fourth upright course adds airy doorway height"
+          },
+          {
+            "id": "post_50_50_3",
+            "ref": "3005.dat",
+            "colour": 4,
+            "at": [
+              50,
+              -136,
+              50
+            ],
+            "purpose": "fourth upright course adds airy doorway height"
+          },
+          {
+            "id": "capital_-50_-50",
+            "ref": "3022.dat",
+            "colour": 4,
+            "at": [
+              -50,
+              -144,
+              -50
+            ],
+            "purpose": "red capital ties roof to corner post"
+          },
+          {
+            "id": "capital_-50_50",
+            "ref": "3022.dat",
+            "colour": 4,
+            "at": [
+              -50,
+              -144,
+              50
+            ],
+            "purpose": "red capital ties roof to corner post"
+          },
+          {
+            "id": "capital_50_-50",
+            "ref": "3022.dat",
+            "colour": 4,
+            "at": [
+              50,
+              -144,
+              -50
+            ],
+            "purpose": "red capital ties roof to corner post"
+          },
+          {
+            "id": "capital_50_50",
+            "ref": "3022.dat",
+            "colour": 4,
+            "at": [
+              50,
+              -144,
+              50
+            ],
+            "purpose": "red capital ties roof to corner post"
+          }
+        ],
+        [
+          {
+            "id": "roof_base",
+            "ref": "3958.dat",
+            "colour": 0,
+            "at": [
+              0,
+              -152,
+              0
+            ],
+            "purpose": "black roof plate mates to all four pillar tops"
+          },
+          {
+            "id": "roof_crown",
+            "ref": "3031.dat",
+            "colour": 0,
+            "at": [
+              0,
+              -160,
+              0
+            ],
+            "purpose": "raised roof plane leaves a broad eave"
+          },
+          {
+            "id": "roof_peak",
+            "ref": "3022.dat",
+            "colour": 0,
+            "at": [
+              0,
+              -168,
+              0
+            ],
+            "purpose": "small central roof cap"
+          }
+        ],
+        [
+          {
+            "id": "roof_trim_-30",
+            "ref": "3023b.dat",
+            "colour": 0,
+            "at": [
+              -30,
+              -160,
+              -50
+            ],
+            "purpose": "black front eave detailing"
+          },
+          {
+            "id": "roof_trim_30",
+            "ref": "3023b.dat",
+            "colour": 0,
+            "at": [
+              30,
+              -160,
+              -50
+            ],
+            "purpose": "black front eave detailing"
+          },
+          {
+            "id": "flower_stem_-30",
+            "ref": "3062b.dat",
+            "colour": 28,
+            "at": [
+              -30,
+              -8,
+              -50
+            ],
+            "purpose": "garden planting at front of base"
+          },
+          {
+            "id": "flower_-30",
+            "ref": "6141.dat",
+            "colour": 14,
+            "at": [
+              -30,
+              -16,
+              -50
+            ],
+            "purpose": "yellow blossom on short green stem"
+          },
+          {
+            "id": "flower_stem_30",
+            "ref": "3062b.dat",
+            "colour": 28,
+            "at": [
+              30,
+              -8,
+              -50
+            ],
+            "purpose": "garden planting at front of base"
+          },
+          {
+            "id": "flower_30",
+            "ref": "6141.dat",
+            "colour": 14,
+            "at": [
+              30,
+              -16,
+              -50
+            ],
+            "purpose": "yellow blossom on short green stem"
+          }
+        ]
+      ]
+    }
+  ]
+}

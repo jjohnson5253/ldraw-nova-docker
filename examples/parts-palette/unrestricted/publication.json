@@ -1,0 +1,9 @@
+{
+  "model_url": "/files/generated/red-garden-lookout-v1.mpd",
+  "sha256": "3da2f28edffcf10b0965624536a4ba8dac562de40fbd9c6bbac7540428ec50e2",
+  "checks_passed": true,
+  "physical_validity": "not_proven",
+  "warnings": [
+    "Physical buildability is not proven; read the validation and visual review reports."
+  ]
+}
