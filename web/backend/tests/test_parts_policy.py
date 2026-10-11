@@ -1,6 +1,5 @@
 import asyncio
 import json
-from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
@@ -14,7 +13,7 @@ import tools
 from parts_catalog import PartsUnavailable
 from store import ChatStore
 
-CATALOG = 'part_id,color_id,name,sku,max_quantity\n3001,4,Brick 2 x 4,A,4\n'
+CATALOG = 'part_id,color_id,name,max_quantity\n3001,4,Brick 2 x 4,4\n'
 MODEL = b'1 4 0 0 0 1 0 0 0 1 0 0 0 1 3001.dat\n'
 
 
@@ -45,34 +44,21 @@ def test_reference_cannot_change_authority_and_symlinks_are_replaced(configured,
         policy.path('../escape')
 
 
-def test_defaults_freeze_per_chat_and_invalid_catalog_fails_closed(tmp_path, monkeypatch):
-    monkeypatch.setattr(parts_policy.sandbox, 'give_to_agent', lambda path: None)
-    default = tmp_path / 'default.csv'; default.write_text(CATALOG)
-    policy = parts_policy.ChatPartsPolicy(tmp_path / 'protected', default)
-    store = SimpleNamespace(work_dir=lambda chat: tmp_path / chat)
-    assert policy.prepare(store, 'chat')
-    default.write_text(CATALOG.replace('3001,4', '3001,0'))
-    assert policy.load('chat').search(color_id=4)['total'] == 1
-    assert policy.load('other').search(color_id=0)['total'] == 1
+def test_invalid_replacement_preserves_the_palette(configured):
+    policy, store, chat_id = configured
     with pytest.raises(ValueError):
-        policy.configure(store, 'chat', 'invalid')
-    assert policy.load('chat').search(color_id=4)['total'] == 1
-
-
-def test_server_configuration_selects_an_external_palette_only(monkeypatch):
-    monkeypatch.delenv('NOVA_PARTS_PALETTE', raising=False)
-    assert parts_policy.default_palette_path() is None
-    monkeypatch.setenv('NOVA_PARTS_PALETTE', '/config/my-parts.csv')
-    assert parts_policy.default_palette_path() == Path('/config/my-parts.csv')
-    monkeypatch.setenv('NOVA_PARTS_PALETTE', 'relative.csv')
-    with pytest.raises(ValueError):
-        parts_policy.default_palette_path()
+        policy.configure(store, chat_id, "invalid")
+    assert policy.load(chat_id).search(color_id=4)["total"] == 1
 
 
 def test_no_palette_leaves_normal_nova_unrestricted(tmp_path):
     policy = parts_policy.ChatPartsPolicy(tmp_path / 'config')
     store = SimpleNamespace(work_dir=lambda chat: tmp_path / chat)
+    reference = tmp_path / "chat" / "allowed-parts.csv"
+    reference.parent.mkdir()
+    reference.write_text("User file")
     assert policy.prepare(store, 'chat') is False
+    assert reference.read_text() == "User file"
     assert policy.validate_model('chat', MODEL) is None
 
 
@@ -80,8 +66,6 @@ def test_external_prices_are_not_stored_or_exposed(configured):
     policy, store, chat_id = configured
     source = 'part_id,color_id,unit_price,weight_kg,supplier_color\n3001,4,0.15,0.00219,010\n'
     policy.configure(store, chat_id, source)
-    # Existing protected snapshots are normalized before the next turn too.
-    policy.path(chat_id).write_text(source)
     policy.prepare(store, chat_id)
     for path in (policy.path(chat_id), store.work_dir(chat_id) / 'allowed-parts.csv'):
         assert 'unit_price' not in path.read_text()
@@ -150,7 +134,7 @@ def test_new_chat_upload_is_validated_before_creation_and_persisted(configured, 
     assert client.get('/api/chats/missing/parts-palette').status_code == 404
 
 
-def test_clear_returns_to_default_and_cannot_modify_a_running_chat(configured, monkeypatch, tmp_path):
+def test_clear_removes_palette_and_cannot_modify_a_running_chat(configured, monkeypatch):
     policy, store, chat = configured
     monkeypatch.setattr(main, 'get_store', lambda: store)
     client = TestClient(main.app)
@@ -162,11 +146,6 @@ def test_clear_returns_to_default_and_cannot_modify_a_running_chat(configured, m
     assert client.delete(endpoint).json()['allowed_combinations'] is None
     assert policy.load(chat) is None
     assert not (store.work_dir(chat) / 'allowed-parts.csv').exists()
-    default = tmp_path / 'default.csv'; default.write_text(CATALOG.replace('3001,4', '3001,0'))
-    policy.default_catalog = default
-    policy.configure(store, chat, CATALOG)
-    assert client.delete(endpoint).json()['default_available'] is True
-    assert policy.load(chat).search(color_id=0)['total'] == 1
 
 
 def test_validate_and_example_do_not_change_a_chat_palette(configured):
@@ -219,18 +198,3 @@ def test_new_chat_can_keep_an_uploaded_palette_disabled(configured, monkeypatch)
     assert client.patch('/api/chats/' + chat + '/parts-palette', json={'enabled': True}).status_code == 200
     empty = store.create_chat()['id']
     assert client.patch('/api/chats/' + empty + '/parts-palette', json={'enabled': True}).status_code == 400
-
-
-def test_default_palette_can_be_explicitly_disabled_and_reset(tmp_path, monkeypatch):
-    monkeypatch.setattr(parts_policy.sandbox, 'give_to_agent', lambda path: None)
-    default = tmp_path / 'default.csv'; default.write_text(CATALOG)
-    policy = parts_policy.ChatPartsPolicy(tmp_path / 'protected', default)
-    store = SimpleNamespace(work_dir=lambda chat: tmp_path / chat)
-    policy.set_enabled(store, 'chat', False)
-    assert policy.load('chat') is None
-    assert policy.info('chat')['allowed_combinations'] == 1
-    policy.set_enabled(store, 'chat', True)
-    assert policy.prepare(store, 'chat')
-    policy.set_enabled(store, 'chat', False)
-    policy.clear(store, 'chat')
-    assert policy.info('chat')['enabled'] is True

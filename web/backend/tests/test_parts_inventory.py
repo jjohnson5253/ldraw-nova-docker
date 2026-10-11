@@ -13,7 +13,7 @@ def model_inventory(source, library):
 
 
 def library():
-    path = Path('/opt/ldraw/ldraw')
+    path = settings.LDRAW_DIR
     if not path.exists():
         pytest.skip('Real LDraw library available in the Nova image')
     return path

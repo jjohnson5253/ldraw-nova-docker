@@ -13,7 +13,6 @@ import sandbox
 import settings
 from parts_catalog import PartsCatalog, reject_custom_parts
 
-CATALOG_VERSION = 1
 CHAT_ID = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$")
 POLICY_PROMPT = (
     "\n\nMANDATORY PARTS POLICY: Use only exact LDraw part/color pairs in the allowed catalog. "
@@ -31,21 +30,9 @@ def _load_catalog(path: str, modified: int) -> PartsCatalog:
     return PartsCatalog.load(Path(path))
 
 
-def default_palette_path() -> Path | None:
-    # Keep the existing variable as a compatibility alias for external CSVs.
-    value = os.environ.get("NOVA_PARTS_PALETTE", os.environ.get("NOVA_PARTS_CATALOG", "")).strip()
-    if not value or value == "none":
-        return None
-    path = Path(value)
-    if not path.is_absolute():
-        raise ValueError("NOVA_PARTS_PALETTE must be none or an absolute CSV path")
-    return path
-
-
 class ChatPartsPolicy:
-    def __init__(self, config_dir: Path, default_catalog: Path | None = None):
+    def __init__(self, config_dir: Path):
         self.root = config_dir / "parts-catalogs"
-        self.default_catalog = default_catalog
 
     def path(self, chat_id: str) -> Path:
         if not CHAT_ID.fullmatch(chat_id):
@@ -59,9 +46,7 @@ class ChatPartsPolicy:
 
     def available(self, chat_id: str) -> PartsCatalog | None:
         path = self.path(chat_id)
-        if not path.exists():
-            path = self.default_catalog
-        return _load_catalog(str(path), path.stat().st_mtime_ns) if path is not None else None
+        return _load_catalog(str(path), path.stat().st_mtime_ns) if path.exists() else None
 
     def configure(self, store, chat_id: str, content: str) -> PartsCatalog:
         catalog = PartsCatalog.from_csv(content)
@@ -89,22 +74,11 @@ class ChatPartsPolicy:
         sandbox.give_to_agent(reference)
 
     def prepare(self, store, chat_id: str) -> bool:
-        """Freeze the default for this chat and restore its convenient reference."""
-        path = self.path(chat_id)
-        if path.with_suffix(".disabled").exists():
-            (store.work_dir(chat_id) / "allowed-parts.csv").unlink(missing_ok=True)
+        """Restore the agent's read copy without changing the authoritative palette."""
+        catalog = self.load(chat_id)
+        if catalog is None:
             return False
-        if not path.exists():
-            if self.default_catalog is None:
-                return False
-            self.configure(store, chat_id, self.default_catalog.read_text(encoding="utf-8"))
-        else:
-            content = path.read_text(encoding="utf-8")
-            if PartsCatalog.from_csv(content).to_csv() != content:
-                # Normalize older snapshots that included external metadata.
-                self.configure(store, chat_id, content)
-            else:
-                self._write_reference(store, chat_id, content)
+        self._write_reference(store, chat_id, catalog.to_csv())
         return True
 
     def validate_model(self, chat_id: str, content: bytes) -> dict | None:
@@ -115,12 +89,10 @@ class ChatPartsPolicy:
         catalog.validate(inventory)
         return {"valid": True, "physical_parts": sum(inventory.values())}
 
-    def info(self, chat_id: str | None = None) -> dict:
-        catalog = self.available(chat_id) if chat_id else (
-            PartsCatalog.load(self.default_catalog) if self.default_catalog else None)
-        enabled = catalog is not None and (not chat_id or not self.path(chat_id).with_suffix(".disabled").exists())
+    def info(self, chat_id: str) -> dict:
+        catalog = self.available(chat_id)
         return {"allowed_combinations": len(catalog.parts) if catalog else None,
-                "enabled": enabled, "default_available": self.default_catalog is not None}
+                "enabled": self.load(chat_id) is not None}
 
     def set_enabled(self, store, chat_id: str, enabled: bool) -> None:
         """Retain the trusted palette while explicitly opting in or out per chat."""
@@ -137,7 +109,7 @@ class ChatPartsPolicy:
             (store.work_dir(chat_id) / "allowed-parts.csv").unlink(missing_ok=True)
 
     def clear(self, store, chat_id: str) -> None:
-        """Remove the upload and restore the server default, if configured."""
+        """Remove the uploaded palette."""
         path = self.path(chat_id)
         path.unlink(missing_ok=True)
         path.with_suffix(".disabled").unlink(missing_ok=True)
@@ -176,4 +148,4 @@ def expanded_inventory(content: bytes, toolkit_dir: Path, ldraw_dir: Path) -> di
         return {(part, color): quantity for part, color, quantity in json.loads(result.stdout)}
 
 
-policy = ChatPartsPolicy(settings.CONFIG_DIR, default_palette_path())
+policy = ChatPartsPolicy(settings.CONFIG_DIR)

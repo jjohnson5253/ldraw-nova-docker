@@ -63,7 +63,7 @@ export type Capability = boolean | "auto";
 export type EnvironmentVariable = { id: string; name: string; value: null; has_value: boolean; fixed: boolean };
 export type EnvironmentUpdate = { id?: string; name: string; value: string | null };
 export type DocumentUpload = { name: string; data: string };
-export type PartsPaletteInfo = { enabled: boolean; allowed_combinations: number | null; default_available: boolean };
+export type PartsPaletteInfo = { enabled: boolean; allowed_combinations: number | null };
 export type ConnectionStatus = "not_tested" | "connected" | "not_connected";
 export type TurnOptions = { mode: "plan" | "agent"; permissions: "ask" | "full" | "read_only"; effort?: string | null; context_tokens?: number | null };
 export type ModelProfile = {
@@ -114,11 +114,11 @@ export const api = {
   chats: () => request<{ chats: Chat[] }>("/api/chats"),
   createChat: (llm_model_id?: string | null, parts_palette_csv?: string | null, parts_palette_enabled = true) =>
     request<Chat>("/api/chats", { method: "POST", body: json({ llm_model_id, parts_palette_csv, parts_palette_enabled }) }),
-  partsPalette: (id?: string) => request<PartsPaletteInfo>(id ? `/api/chats/${encodeURIComponent(id)}/parts-palette` : '/api/parts-palette'),
-  validatePalette: (csv: string) => request<PartsPaletteInfo>('/api/parts-palette/validate', { method: 'POST', body: json({ csv }) }),
-  savePalette: (id: string, csv: string) => request<PartsPaletteInfo>(`/api/chats/${encodeURIComponent(id)}/parts-palette`, { method: 'PUT', body: json({ csv }) }),
-  selectPalette: (id: string, enabled: boolean) => request<PartsPaletteInfo>(`/api/chats/${encodeURIComponent(id)}/parts-palette`, { method: 'PATCH', body: json({ enabled }) }),
-  clearPalette: (id: string) => request<PartsPaletteInfo>(`/api/chats/${encodeURIComponent(id)}/parts-palette`, { method: 'DELETE' }),
+  partsPalette: (id: string) => request<PartsPaletteInfo>(`/api/chats/${encodeURIComponent(id)}/parts-palette`),
+  validatePalette: (csv: string) => request<PartsPaletteInfo>("/api/parts-palette/validate", { method: "POST", body: json({ csv }) }),
+  savePalette: (id: string, csv: string) => request<PartsPaletteInfo>(`/api/chats/${encodeURIComponent(id)}/parts-palette`, { method: "PUT", body: json({ csv }) }),
+  selectPalette: (id: string, enabled: boolean) => request<PartsPaletteInfo>(`/api/chats/${encodeURIComponent(id)}/parts-palette`, { method: "PATCH", body: json({ enabled }) }),
+  clearPalette: (id: string) => request<PartsPaletteInfo>(`/api/chats/${encodeURIComponent(id)}/parts-palette`, { method: "DELETE" }),
   chat: (id: string) => request<ChatDetail>(`/api/chats/${id}`),
   renameChat: (id: string, title: string) =>
     request<Chat>(`/api/chats/${id}`, { method: "PATCH", body: json({ title }) }),
