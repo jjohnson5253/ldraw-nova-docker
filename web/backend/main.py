@@ -6,6 +6,7 @@ Run (the image's default CMD):
 from __future__ import annotations
 
 import asyncio
+import base64
 import json
 import logging
 import tempfile
@@ -84,8 +85,10 @@ async def same_origin_api(request: Request, call_next):
             size = int(request.headers.get("content-length", "0"))
         except ValueError:
             return JSONResponse({"detail": "Invalid Content-Length"}, status_code=400)
-        if size > 18 * 1024 * 1024:
-            return JSONResponse({"detail": "Request exceeds 18 MB"}, status_code=413)
+        # A 16 MB binary palette needs about 22 MB when base64 encoded in JSON.
+        limit_mb = 23 if request.url.path == "/api/parts-palette/import" else 18
+        if size > limit_mb * 1024 * 1024:
+            return JSONResponse({"detail": f"Request exceeds {limit_mb} MB"}, status_code=413)
     response = await call_next(request)
     if request.url.path.startswith("/api/environment") or request.url.path.endswith("/edit"):
         response.headers["Cache-Control"] = "no-store"
@@ -421,6 +424,24 @@ def chats_create(body: NewChat):
 
 class PartsPaletteRequest(BaseModel):
     csv: str = Field(min_length=1, max_length=16 * 1024 * 1024)
+
+
+class PartsPaletteUpload(BaseModel):
+    filename: str = Field(min_length=1, max_length=255)
+    data_base64: str = Field(min_length=1, max_length=22_369_624)
+
+
+@app.post("/api/parts-palette/import")
+def import_parts_palette(body: PartsPaletteUpload):
+    try:
+        data = base64.b64decode(body.data_base64, validate=True)
+        palette = PartsCatalog.from_upload(body.filename, data)
+        csv = palette.to_csv()
+        if len(csv.encode("utf-8")) > 16 * 1024 * 1024:
+            raise ValueError("Converted palette exceeds 16 MB")
+    except ValueError as exc:
+        raise HTTPException(400, str(exc)) from None
+    return {"csv": csv, "allowed_combinations": len(palette.parts), "enabled": True}
 
 
 @app.get("/api/parts-palette/example")

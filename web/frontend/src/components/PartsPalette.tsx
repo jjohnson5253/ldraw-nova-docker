@@ -24,13 +24,14 @@ export default function PartsPalette({ chatId, running = false, onChange, onSele
 
   async function upload(file: File) {
     setError("");
-    if (!file.name.toLowerCase().endsWith(".csv") || file.size > 16 * 1024 * 1024) {
-      setError("Choose a CSV parts palette no larger than 16 MB."); return;
+    if (!/\.(csv|ldr|mpd|xml|io)$/i.test(file.name) || !file.size || file.size > 16 * 1024 * 1024) {
+      setError("Choose an LDR, CSV, XML, or Studio IO file no larger than 16 MB."); return;
     }
     setBusy(true); onBusy(true);
     try {
-      const csv = await file.text();
-      const updated = chatId ? await api.savePalette(chatId, csv) : await api.validatePalette(csv);
+      const imported = await api.importPalette(file);
+      const { csv } = imported;
+      const updated = chatId ? await api.savePalette(chatId, csv) : imported;
       setInfo(updated); setFilename(file.name); onChange?.(csv); onSelection?.(true);
     } catch (e) { setError((e as Error).message); }
     finally { setBusy(false); onBusy(false); }
@@ -61,8 +62,8 @@ export default function PartsPalette({ chatId, running = false, onChange, onSele
           : "All library parts available"}</span>
       </div>
       <div className="palette-actions">
-        <input ref={input} type="file" accept=".csv,text/csv" hidden disabled={busy || running}
-          aria-label="Upload parts palette CSV" onChange={e => {
+        <input ref={input} type="file" accept=".ldr,.mpd,.csv,.xml,.io" hidden disabled={busy || running}
+          aria-label="Upload parts palette" onChange={e => {
             const file = e.target.files?.[0]; e.target.value = ""; if (file) void upload(file);
           }} />
         <button type="button" disabled={busy || running} onClick={() => input.current?.click()}>
@@ -75,7 +76,7 @@ export default function PartsPalette({ chatId, running = false, onChange, onSele
       <input type="checkbox" checked={info.enabled} disabled={busy || running} onChange={e => void select(e.target.checked)} />
       <span>Only use this parts palette</span>
     </label>}
-    <small className="muted">Upload a CSV with LDraw part IDs and color IDs, plus optional quantity limits.{" "}
+    <small className="muted">Upload LDraw (.ldr), CSV, BrickLink XML, or Studio (.io). Parts, colors and quantities limit generation.{" "}
       <a href="/api/parts-palette/example" download>Download an example</a>.</small>
     {error && <div className="banner error" role="alert">{error}</div>}
   </section>;

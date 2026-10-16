@@ -116,6 +116,16 @@ export const api = {
     request<Chat>("/api/chats", { method: "POST", body: json({ llm_model_id, parts_palette_csv, parts_palette_enabled }) }),
   partsPalette: (id: string) => request<PartsPaletteInfo>(`/api/chats/${encodeURIComponent(id)}/parts-palette`),
   validatePalette: (csv: string) => request<PartsPaletteInfo>("/api/parts-palette/validate", { method: "POST", body: json({ csv }) }),
+  importPalette: async (file: File) => {
+    const bytes = new Uint8Array(await file.arrayBuffer());
+    const chunks: string[] = [];
+    for (let offset = 0; offset < bytes.length; offset += 32768) {
+      chunks.push(String.fromCharCode(...bytes.subarray(offset, offset + 32768)));
+    }
+    return request<PartsPaletteInfo & { csv: string }>("/api/parts-palette/import", {
+      method: "POST", body: json({ filename: file.name, data_base64: btoa(chunks.join("")) }),
+    });
+  },
   savePalette: (id: string, csv: string) => request<PartsPaletteInfo>(`/api/chats/${encodeURIComponent(id)}/parts-palette`, { method: "PUT", body: json({ csv }) }),
   selectPalette: (id: string, enabled: boolean) => request<PartsPaletteInfo>(`/api/chats/${encodeURIComponent(id)}/parts-palette`, { method: "PATCH", body: json({ enabled }) }),
   clearPalette: (id: string) => request<PartsPaletteInfo>(`/api/chats/${encodeURIComponent(id)}/parts-palette`, { method: "DELETE" }),
