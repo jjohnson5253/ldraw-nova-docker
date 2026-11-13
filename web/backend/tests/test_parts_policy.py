@@ -137,3 +137,45 @@ def test_native_catalog_endpoint_preserves_chat_and_running_boundaries(configure
     monkeypatch.setattr(agent, 'is_running', lambda chat: True)
     assert client.put(endpoint, json={'csv': CATALOG}).status_code == 409
     assert client.put(endpoint, headers={'Origin': 'https://other.example'}, json={'csv': CATALOG}).status_code == 403
+
+
+def test_total_limit_is_private_persistent_and_counts_repeated_parts(configured, monkeypatch):
+    policy, store, chat_id = configured
+    policy.set_limit(chat_id, 2)
+    monkeypatch.setattr(parts_policy, 'expanded_inventory', lambda *args: {('3001', 4): 3})
+    with pytest.raises(ValueError, match='3 physical parts; maximum is 2'):
+        policy.validate_model(chat_id, MODEL)
+    policy.prepare(store, chat_id)
+    assert policy.limit(chat_id) == 2
+    monkeypatch.setattr(agent.toolkit, 'instructions', lambda: 'instructions')
+    monkeypatch.setattr(agent.toolkit, 'builder_guides', lambda: 'guides')
+    assert 'at most 2 physical parts' in agent.system_prompt(store, chat_id)
+    assert policy.path(chat_id).with_suffix('.limit.json').stat().st_mode & 0o777 == 0o600
+    assert policy.limit(store.create_chat()['id']) is None
+    policy.set_limit(chat_id, 3)
+    assert policy.validate_model(chat_id, MODEL)['physical_parts'] == 3
+    policy.set_limit(chat_id, None)
+    assert policy.limit_prompt(chat_id) == ''
+    assert policy.validate_model(chat_id, MODEL)['valid']
+
+
+@pytest.mark.parametrize('value', [0, -1, 1.5, True, '10', 100001])
+def test_invalid_total_limits_are_rejected(configured, value):
+    policy, _, chat_id = configured
+    with pytest.raises(ValueError):
+        policy.set_limit(chat_id, value)
+
+
+def test_total_limit_blocks_publication_before_rendering(configured, monkeypatch):
+    policy, store, chat_id = configured
+    policy.set_limit(chat_id, 1)
+    monkeypatch.setattr(parts_policy, 'expanded_inventory', lambda *args: {('3001', 4): 2})
+    ctx = tools.ToolContext(chat_id=chat_id, store=store, emit=lambda *args: None)
+    model = store.work_dir(chat_id) / 'model.mpd'
+    model.write_bytes(MODEL)
+    async def must_not_run(*args, **kwargs):
+        raise AssertionError('Oversized model reached rendering')
+    monkeypatch.setattr(tools, 'run_command', must_not_run)
+    result = asyncio.run(tools.dispatch(ctx, 'publish_model', {'path': str(model)}))
+    assert 'blocked publication' in result.content
+    assert not store.models(chat_id)

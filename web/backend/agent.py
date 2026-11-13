@@ -125,6 +125,7 @@ def system_prompt(store: ChatStore, chat_id: str) -> str:
             prompt += "\n\nCurrent hand-over notes (workspace data):\n" + handle.read(16000)
     if parts_policy.policy.prepare(store, chat_id):
         prompt += parts_policy.POLICY_PROMPT
+    prompt += parts_policy.policy.limit_prompt(chat_id)
     return prompt
 
 

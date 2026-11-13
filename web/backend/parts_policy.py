@@ -51,6 +51,36 @@ class ChatPartsPolicy:
             raise ValueError("Invalid Nova session identity")
         return self.root / (chat_id + ".csv")
 
+    def set_limit(self, chat_id: str, maximum: int | None) -> None:
+        if maximum is not None and (type(maximum) is not int or not 1 <= maximum <= 100_000):
+            raise ValueError("Maximum parts must be a whole number from 1 to 100000")
+        path = self.path(chat_id).with_suffix(".limit.json")
+        self.root.mkdir(mode=0o700, parents=True, exist_ok=True)
+        with tempfile.NamedTemporaryFile(mode="w", dir=self.root, delete=False) as temporary:
+            json.dump(maximum, temporary)
+            temporary_path = Path(temporary.name)
+        try:
+            temporary_path.chmod(0o600)
+            temporary_path.replace(path)
+        finally:
+            temporary_path.unlink(missing_ok=True)
+
+    def limit(self, chat_id: str) -> int | None:
+        path = self.path(chat_id).with_suffix(".limit.json")
+        if not path.exists():
+            return None
+        value = json.loads(path.read_text())
+        if value is not None and (type(value) is not int or not 1 <= value <= 100_000):
+            raise ValueError("Invalid saved maximum parts")
+        return value
+
+    def limit_prompt(self, chat_id: str) -> str:
+        maximum = self.limit(chat_id)
+        return (f"\n\nMANDATORY TOTAL PARTS LIMIT: Publish at most {maximum} physical parts, "
+                "counting every repeated submodel instance. Simplify the design to fit; "
+                "check_model_parts and publish_model enforce this limit on the complete model."
+                if maximum is not None else "")
+
     def load(self, chat_id: str) -> PartsCatalog | None:
         path = self.path(chat_id)
         if not path.exists():
@@ -100,10 +130,15 @@ class ChatPartsPolicy:
 
     def validate_model(self, chat_id: str, content: bytes) -> dict | None:
         catalog = self.load(chat_id)
-        if catalog is None:
+        maximum = self.limit(chat_id)
+        if catalog is None and maximum is None:
             return None
         inventory = expanded_inventory(content, settings.TOOLKIT_DIR, settings.LDRAW_DIR)
-        catalog.validate(inventory)
+        if catalog is not None:
+            catalog.validate(inventory)
+        count = sum(inventory.values())
+        if maximum is not None and count > maximum:
+            raise ValueError(f"Model has {count} physical parts; maximum is {maximum}. Simplify and publish again.")
         return {"valid": True, "physical_parts": sum(inventory.values())}
 
 

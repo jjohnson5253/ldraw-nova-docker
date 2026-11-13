@@ -406,6 +406,7 @@ def chats_create(body: NewChat):
 
 
 class PartsCatalogRequest(BaseModel):
+    max_parts: int | None = Field(default=None, strict=True, ge=1, le=100_000)
     csv: str = Field(min_length=1, max_length=16 * 1024 * 1024)
 
 
@@ -417,6 +418,7 @@ async def configure_parts_catalog(chat_id: str, body: PartsCatalogRequest):
         raise HTTPException(409, "Wait for the current generation to finish before changing its catalog")
     try:
         catalog = parts_policy.policy.configure(store, chat_id, body.csv)
+        parts_policy.policy.set_limit(chat_id, body.max_parts)
     except ValueError as exc:
         raise HTTPException(400, str(exc)) from None
     return {"parts_catalog_version": parts_policy.CATALOG_VERSION, "allowed_combinations": len(catalog.parts)}
